@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datos de Afiliación - PRD Zacatecas</title>
+    <link rel="stylesheet" href="../assets/css/styles.css">
+</head>
+<body>
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo"><img src="../assets/images/PRD.png" alt="PRD Logo"></div>
+            <div class="sidebar-title">Revolución Democrática</div>
+        </div>
+        <div class="sidebar-menu">
+            <a href="../index.html" class="menu-item"><span class="menu-icon">🏠</span><span class="menu-text">Inicio</span></a>
+            <a href="paso-afiliacion.html" class="menu-item active"><span class="menu-icon">📝</span><span class="menu-text">Afíliate</span></a>
+        </div>
+        <div class="sidebar-footer">PRD México 2025</div>
+    </nav>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <header class="header-container">
+        <div class="page-wrapper header">
+            <div class="logo"><a href="../index.html"><img src="../assets/images/PRD.png" alt="PRD Logo"></a></div>
+            <div class="menu-btn" id="menuBtn">
+                <div class="menu-line"></div><div class="menu-line"></div><div class="menu-line"></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="form-page-main page-wrapper" id="mainContent">
+        <div class="form-container">
+            <div class="progress-container">
+                <div class="progress-dots">
+                    <div class="dot active"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
+            
+            <div class="content">
+                <h2 class="section-title">Formulario de Afiliación Completo</h2>
+                
+                <!-- SECCIÓN DEL RESPONSABLE -->
+                <div class="affiliate-section">
+                    <div class="affiliate-title">👤 Responsable de afiliación</div>
+                    <div class="form-group">
+                        <label class="form-label">Nombre del afiliador <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <input type="text" id="afiliador" class="form-input" placeholder="Nombre completo del responsable" required>
+                            <div class="validation-icon" id="afiliador-icon"></div>
+                        </div>
+                        <div class="error-message" id="afiliador-error"></div>
+                    </div>
+                </div>
+
+                <!-- BOTÓN ESCANEAR INE -->
+                <div class="auth-options">
+                    <button class="auth-btn ine-btn" onclick="scanINE()" type="button">📷 Escanear INE (Llena Todo Automáticamente)</button>
+                </div>
+
+                <div class="divider">O INGRESA TUS DATOS MANUALMENTE</div>
+                
+                <form id="affiliationForm" novalidate>
+                    <!-- SECCIÓN 1: DATOS PERSONALES -->
+                    <div class="form-section">
+                        <h3 class="form-section-title">👤 Información Personal</h3>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Nombre(s) <span class="required">*</span></label>
+                                <div class="input-wrapper">
+                                    <input type="text" id="nombres" class="form-input" placeholder="Ej. Juan Carlos" required>
+                                    <div class="validation-icon" id="nombres-icon"></div>
+                                </div>
+                                <div class="error-message" id="nombres-error"></div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Primer apellido <span class="required">*</span></label>
+                                <div class="input-wrapper">
+                                    <input type="text" id="primerApellido" class="form-input" placeholder="Ej. Hernández" required>
+                                    <div class="validation-icon" id="primerApellido-icon"></div>
+                                </div>
+                                <div class="error-message" id="primerApellido-error"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Segundo apellido</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="segundoApellido" class="form-input" placeholder="Ej. López">
+                                <div class="validation-icon" id="segundoApellido-icon"></div>
+                            </div>
+                            <div class="error-message" id="segundoApellido-error"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Lugar de nacimiento <span class="required">*</span></label>
+                            <div class="input-wrapper">
+                                <input type="text" id="lugarNacimiento" class="form-input" placeholder="Ej. Ciudad de México, CDMX" required>
+                                <div class="validation-icon" id="lugarNacimiento-icon"></div>
+                            </div>
+                            <div class="error-message" id="lugarNacimiento-error"></div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">CURP <span class="required">*</span></label>
+                                <div class="input-wrapper">
+                                    <input type="text" id="curp" class="form-input" placeholder="18 caracteres" maxlength="18" required style="text-transform: uppercase;">
+                                    <div class="validation-icon" id="curp-icon"></div>
+                                </div>
+                                <div class="error-message" id="curp-error"></div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Clave de elector <span class="required">*</span></label>
+                                <div class="input-wrapper">
+                                    <input type="text" id="claveElector" class="form-input" placeholder="18 caracteres" maxlength="18" required style="text-transform: uppercase;">
+                                    <div class="validation-icon" id="claveElector-icon"></div>
+                                </div>
+                                <div class="error-message" id="claveElector-error"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Correo electrónico <span class="required">*</span></label>
+                                <div class="input-wrapper">
+                                    <input type="email" id="email" class="form-input" placeholder="ejemplo@correo.com" required>
+                                    <div class="validation-icon" id="email-icon"></div>
+                                </div>
+                                <div class="error-message" id="email-error"></div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Número de teléfono <span class="required">*</span></label>
+                                <div class="input-wrapper">
+                                    <input type="tel" id="telefono" class="form-input" placeholder="10 dígitos" maxlength="10" required>
+                                    <div class="validation-icon" id="telefono-icon"></div>
+                                </div>
+                                <div class="error-message" id="telefono-error"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Género <span class="required">*</span></label>
+                            <div class="radio-group">
+                                <label class="radio-option">
+                                    <input type="radio" name="gender" value="masculino" required>
+                                    <span>Masculino</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="gender" value="femenino" required>
+                                    <span>Femenino</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="gender" value="no_decir" required>
+                                    <span>Prefiero no decirlo</span>
+                                </label>
+                            </div>
+                            <div class="error-message" id="gender-error"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">¿Cómo llegas al PRD? <span class="required">*</span></label>
+                            <div class="input-wrapper">
+                                <select id="llegadaPRD" class="form-select" required>
+                                    <option value="">Selecciona una opción</option>
+                                    <option value="simpatizante">Simpatizante</option>
+                                    <option value="militante">Militante</option>
+                                    <option value="cuadro">Cuadro</option>
+                                </select>
+                                <div class="validation-icon" id="llegadaPRD-icon"></div>
+                            </div>
+                            <div class="error-message" id="llegadaPRD-error"></div>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN 2: DOMICILIO -->
+                    <div class="form-section">
+                        <h3 class="form-section-title">🏠 Información de Domicilio</h3>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Estado <span class="required">*</span></label>
+                                <select class="form-select" id="estado" required>
+                                    <option value="Zacatecas" selected>Zacatecas</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Municipio <span class="required">*</span></label>
+                                <select class="form-select" id="municipio" required>
+                                    <option value="" selected disabled>Selecciona un municipio</option>
+                                    <option value="Apozol">Apozol</option>
+                                    <option value="Apulco">Apulco</option>
+                                    <option value="Atolinga">Atolinga</option>
+                                    <option value="Benito Juárez">Benito Juárez</option>
+                                    <option value="Calera">Calera</option>
+                                    <option value="Cañitas de Felipe Pescador">Cañitas de Felipe Pescador</option>
+                                    <option value="Concepción del Oro">Concepción del Oro</option>
+                                    <option value="Cuauhtémoc">Cuauhtémoc</option>
+                                    <option value="Chalchihuites">Chalchihuites</option>
+                                    <option value="Fresnillo">Fresnillo</option>
+                                    <option value="Trinidad García de la Cadena">Trinidad García de la Cadena</option>
+                                    <option value="Genaro Codina">Genaro Codina</option>
+                                    <option value="General Enrique Estrada">General Enrique Estrada</option>
+                                    <option value="General Francisco R. Murguía">General Francisco R. Murguía</option>
+                                    <option value="El Plateado de Joaquín Amaro">El Plateado de Joaquín Amaro</option>
+                                    <option value="General Pánfilo Natera">General Pánfilo Natera</option>
+                                    <option value="Guadalupe">Guadalupe</option>
+                                    <option value="Huanusco">Huanusco</option>
+                                    <option value="Jalpa">Jalpa</option>
+                                    <option value="Jerez">Jerez</option>
+                                    <option value="Jiménez del Teul">Jiménez del Teul</option>
+                                    <option value="Juan Aldama">Juan Aldama</option>
+                                    <option value="Juchipila">Juchipila</option>
+                                    <option value="Loreto">Loreto</option>
+                                    <option value="Luis Moya">Luis Moya</option>
+                                    <option value="Mazapil">Mazapil</option>
+                                    <option value="Melchor Ocampo">Melchor Ocampo</option>
+                                    <option value="Mezquital del Oro">Mezquital del Oro</option>
+                                    <option value="Miguel Auza">Miguel Auza</option>
+                                    <option value="Momax">Momax</option>
+                                    <option value="Monte Escobedo">Monte Escobedo</option>
+                                    <option value="Morelos">Morelos</option>
+                                    <option value="Moyahua de Estrada">Moyahua de Estrada</option>
+                                    <option value="Nochistlán de Mejía">Nochistlán de Mejía</option>
+                                    <option value="Noria de Ángeles">Noria de Ángeles</option>
+                                    <option value="Ojocaliente">Ojocaliente</option>
+                                    <option value="Pánuco">Pánuco</option>
+                                    <option value="Pinos">Pinos</option>
+                                    <option value="Río Grande">Río Grande</option>
+                                    <option value="Saín Alto">Saín Alto</option>
+                                    <option value="El Salvador">El Salvador</option>
+                                    <option value="Santa María de la Paz">Santa María de la Paz</option>
+                                    <option value="Sombrerete">Sombrerete</option>
+                                    <option value="Susticacán">Susticacán</option>
+                                    <option value="Tabasco">Tabasco</option>
+                                    <option value="Tepechitlán">Tepechitlán</option>
+                                    <option value="Tepetongo">Tepetongo</option>
+                                    <option value="Teúl de González Ortega">Teúl de González Ortega</option>
+                                    <option value="Tlaltenango de Sánchez Román">Tlaltenango de Sánchez Román</option>
+                                    <option value="Valparaíso">Valparaíso</option>
+                                    <option value="Vetagrande">Vetagrande</option>
+                                    <option value="Villa de Cos">Villa de Cos</option>
+                                    <option value="Villa García">Villa García</option>
+                                    <option value="Villa González Ortega">Villa González Ortega</option>
+                                    <option value="Villa Hidalgo">Villa Hidalgo</option>
+                                    <option value="Villanueva">Villanueva</option>
+                                    <option value="Zacatecas">Zacatecas</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Colonia <span class="required">*</span></label>
+                                <input type="text" id="colonia" class="form-input" placeholder="Ej. Centro" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Código postal <span class="required">*</span></label>
+                                <input type="tel" id="codigoPostal" class="form-input" placeholder="5 dígitos" maxlength="5" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Calle <span class="required">*</span></label>
+                            <input type="text" id="calle" class="form-input" placeholder="Ej. Av. Revolución" required>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Número Exterior</label>
+                                <input type="text" id="numeroExterior" class="form-input" placeholder="Ej. 123">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Número Interior</label>
+                                <input type="text" id="numeroInterior" class="form-input" placeholder="Ej. A">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="footer-nav">
+                <a href="../index.html" class="back-link">Cancelar</a>
+                <button class="next-button" onclick="nextStep()">Continuar a Términos →</button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-text">Partido de la Revolución Democrática</div>
+    </footer>
+
+    <script src="../assets/js/main.js"></script>
+
+    <script>
+        // Objeto de validaciones (combinado)
+        const validators = {
+            validateName: (value) => {
+                const nameRegex = /^[a-zA-ZÀ-ÿ\u00f1\u00d1\s]{2,50}$/;
+                if (!value.trim()) return 'Este campo es obligatorio';
+                if (!nameRegex.test(value)) return 'Solo se permiten letras y espacios (2-50 caracteres)';
+                return null;
+            },
+            validateCURP: (value) => {
+                const curpRegex = /^[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[0-9A-Z][0-9]$/;
+                if (!value.trim()) return 'La CURP es obligatoria';
+                if (value.length !== 18) return 'La CURP debe tener exactamente 18 caracteres';
+                const upperValue = value.toUpperCase();
+                if (!curpRegex.test(upperValue)) return 'Formato de CURP inválido';
+                return null;
+            },
+            validateClaveElector: (value) => {
+                const claveRegex = /^[A-Z]{6}[0-9]{8}[HM][0-9]{3}$/;
+                if (!value.trim()) return 'La clave de elector es obligatoria';
+                if (value.length !== 18) return 'La clave de elector debe tener exactamente 18 caracteres';
+                const upperValue = value.toUpperCase();
+                if (!claveRegex.test(upperValue)) return 'Formato de clave de elector inválido';
+                return null;
+            },
+            validateEmail: (value) => {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!value.trim()) return 'El correo electrónico es obligatorio';
+                if (!emailRegex.test(value)) return 'Formato de correo electrónico inválido';
+                return null;
+            },
+            validatePhone: (value) => {
+                const phoneRegex = /^[0-9]{10}$/;
+                if (!value.trim()) return 'El número de teléfono es obligatorio';
+                if (!phoneRegex.test(value)) return 'El teléfono debe tener exactamente 10 dígitos';
+                return null;
+            },
+            validatePlace: (value) => {
+                const placeRegex = /^[a-zA-ZÀ-ÿ\u00f1\u00d1\s,.-]{5,100}$/;
+                if (!value.trim()) return 'El lugar de nacimiento es obligatorio';
+                if (!placeRegex.test(value)) return 'Formato de lugar inválido (5-100 caracteres)';
+                return null;
+            },
+            validateRequired: (value) => {
+                if (!value.trim()) return 'Este campo es obligatorio';
+                return null;
+            }
+        };
+
+        // Función para mostrar estado de validación
+        function showValidationState(fieldId, isValid, errorMessage = '') {
+            const field = document.getElementById(fieldId);
+            const icon = document.getElementById(fieldId + '-icon');
+            const errorDiv = document.getElementById(fieldId + '-error');
+
+            if (!field) return;
+
+            field.classList.remove('is-valid', 'is-invalid');
+            
+            if (isValid) {
+                field.classList.add('is-valid');
+                if (icon) icon.style.color = '#28a745';
+                if (errorDiv) errorDiv.classList.remove('show');
+            } else {
+                field.classList.add('is-invalid');
+                if (icon) icon.style.color = '#dc3545';
+                if (errorDiv) {
+                    errorDiv.textContent = errorMessage;
+                    errorDiv.classList.add('show');
+                }
+            }
+        }
+
+        // Función para validar un campo individual
+        function validateField(fieldId, validator) {
+            const field = document.getElementById(fieldId);
+            if (!field) return true;
+            
+            const value = field.value;
+            const error = validator(value);
+            
+            showValidationState(fieldId, !error, error);
+            return !error;
+        }
+
+        // Configurar validaciones en tiempo real
+        function setupRealTimeValidations() {
+            // Datos personales
+            const personalFields = [
+                ['afiliador', validators.validateRequired],
+                ['nombres', validators.validateName],
+                ['primerApellido', validators.validateName],
+                ['lugarNacimiento', validators.validatePlace],
+                ['curp', validators.validateCURP],
+                ['claveElector', validators.validateClaveElector],
+                ['email', validators.validateEmail],
+                ['telefono', validators.validatePhone],
+                ['llegadaPRD', validators.validateRequired]
+            ];
+
+            personalFields.forEach(([fieldId, validator]) => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.addEventListener('blur', () => {
+                        validateField(fieldId, validator);
+                    });
+                }
+            });
+
+            // Segundo apellido (opcional)
+            const segundoApellido = document.getElementById('segundoApellido');
+            if (segundoApellido) {
+                segundoApellido.addEventListener('blur', () => {
+                    const value = segundoApellido.value;
+                    if (value.trim()) {
+                        validateField('segundoApellido', validators.validateName);
+                    } else {
+                        showValidationState('segundoApellido', true);
+                    }
+                });
+            }
+
+            // CURP y Clave de elector en mayúsculas
+            ['curp', 'claveElector'].forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.addEventListener('input', (e) => {
+                        e.target.value = e.target.value.toUpperCase();
+                    });
+                }
+            });
+
+            // Teléfono y código postal solo números
+            ['telefono', 'codigoPostal'].forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.addEventListener('input', (e) => {
+                        e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                    });
+                }
+            });
+
+            // Validación en tiempo real para campos de domicilio
+            const addressFields = ['municipio', 'colonia', 'codigoPostal', 'calle'];
+            addressFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.addEventListener('blur', function() {
+                        if (this.value.trim()) {
+                            this.classList.remove('is-invalid');
+                            this.classList.add('is-valid');
+                        } else {
+                            this.classList.remove('is-valid');
+                            this.classList.add('is-invalid');
+                        }
+                    });
+                }
+            });
+        }
+
+        // Validar formulario completo
+        function validateForm() {
+            let isValid = true;
+            
+            // Validaciones de datos personales
+            const personalValidations = [
+                ['afiliador', validators.validateRequired],
+                ['nombres', validators.validateName],
+                ['primerApellido', validators.validateName],
+                ['lugarNacimiento', validators.validatePlace],
+                ['curp', validators.validateCURP],
+                ['claveElector', validators.validateClaveElector],
+                ['email', validators.validateEmail],
+                ['telefono', validators.validatePhone],
+                ['llegadaPRD', validators.validateRequired]
+            ];
+
+            personalValidations.forEach(([fieldId, validator]) => {
+                if (!validateField(fieldId, validator)) {
+                    isValid = false;
+                }
+            });
+
+            // Validar segundo apellido si tiene valor
+            const segundoApellido = document.getElementById('segundoApellido').value;
+            if (segundoApellido.trim()) {
+                if (!validateField('segundoApellido', validators.validateName)) {
+                    isValid = false;
+                }
+            }
+
+            // Validar género
+            const genderRadios = document.querySelectorAll('input[name="gender"]');
+            const genderSelected = Array.from(genderRadios).some(radio => radio.checked);
+            const genderError = document.getElementById('gender-error');
+            
+            if (!genderSelected) {
+                if (genderError) {
+                    genderError.textContent = 'Debes seleccionar un género';
+                    genderError.classList.add('show');
+                }
+                isValid = false;
+            } else {
+                if (genderError) genderError.classList.remove('show');
+            }
+
+            // Validar campos de domicilio
+            const requiredAddressFields = ['municipio', 'colonia', 'codigoPostal', 'calle'];
+            requiredAddressFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.classList.remove('is-invalid');
+                    if (!field.value.trim()) {
+                        field.classList.add('is-invalid');
+                        isValid = false;
+                    }
+                }
+            });
+
+            return isValid;
+        }
+
+        // Función para el siguiente paso
+        function nextStep() {
+            if (validateForm()) {
+                // Guardar todos los datos
+                const formData = {
+                    // Datos personales
+                    afiliador: document.getElementById('afiliador').value,
+                    nombres: document.getElementById('nombres').value,
+                    primerApellido: document.getElementById('primerApellido').value,
+                    segundoApellido: document.getElementById('segundoApellido').value,
+                    lugarNacimiento: document.getElementById('lugarNacimiento').value,
+                    curp: document.getElementById('curp').value,
+                    claveElector: document.getElementById('claveElector').value,
+                    email: document.getElementById('email').value,
+                    telefono: document.getElementById('telefono').value,
+                    gender: document.querySelector('input[name="gender"]:checked')?.value,
+                    llegadaPRD: document.getElementById('llegadaPRD').value,
+                    // Datos de domicilio
+                    estado: document.getElementById('estado').value,
+                    municipio: document.getElementById('municipio').value,
+                    colonia: document.getElementById('colonia').value,
+                    codigoPostal: document.getElementById('codigoPostal').value,
+                    calle: document.getElementById('calle').value,
+                    numeroExterior: document.getElementById('numeroExterior').value,
+                    numeroInterior: document.getElementById('numeroInterior').value
+                };
+                
+                console.log('Datos completos del formulario:', formData);
+                alert('✅ Formularios válidos! Procediendo a términos y condiciones...');
+                window.location.href = "paso 3.html";
+            } else {
+                alert('❌ Por favor corrige los errores marcados en el formulario.');
+                
+                // Hacer scroll al primer campo con error
+                const firstError = document.querySelector('.is-invalid');
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstError.focus();
+                }
+            }
+        }
+
+        // Inicializar validaciones al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            setupRealTimeValidations();
+            
+            // Agregar listener para el formulario
+            const form = document.getElementById('affiliationForm');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    nextStep();
+                });
+            }
+        });
+
+        // Funcionalidad del menú lateral
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const menuBtn = document.getElementById('menuBtn');
+            
+            if (sidebar) sidebar.classList.toggle('active');
+            if (overlay) overlay.classList.toggle('active');
+            if (menuBtn) menuBtn.classList.toggle('active');
+        }
+
+        // Inicializar eventos del menú
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuBtn = document.getElementById('menuBtn');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            if (menuBtn) {
+                menuBtn.addEventListener('click', toggleSidebar);
+            }
+            
+            if (overlay) {
+                overlay.addEventListener('click', toggleSidebar);
+            }
+        });
+    </script>
+
+    <style>
+        /* Estilos adicionales para las secciones del formulario */
+        .form-section {
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .form-section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #000;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #FFD700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .affiliate-section {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .auth-options {
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .auth-btn {
+            background: #FFD700;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .auth-btn:hover {
+            background: #ffca00;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        .divider {
+            text-align: center;
+            margin: 30px 0;
+            color: #999;
+            font-size: 0.9rem;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 45%;
+            height: 1px;
+            background: #ddd;
+        }
+
+        .divider::before {
+            left: 0;
+        }
+
+        .divider::after {
+            right: 0;
+        }
+
+        /* Ajustes responsive */
+        @media (max-width: 768px) {
+            .form-section {
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+            
+            .form-section-title {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</body>
+</html>

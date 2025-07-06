@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Afiliación Exitosa! - PRD</title>
+    
+    <link rel="stylesheet" href="../assets/css/styles.css">
+
+</head>
+<body>
+    <header class="header-container">
+        <div class="page-wrapper header">
+            <div class="logo">
+                <a href="/index.html"><img src="../assets/images/PRD.png" alt="PRD Logo"></a>
+            </div>
+        </div>
+    </header>
+
+    <main class="confirmation-main page-wrapper" id="mainContent">
+        <div class="confirmation-container">
+            <div class="success-icon">✓</div>
+            <h1 class="confirmation-title">¡Afiliación Completada!</h1>
+            <p class="confirmation-subtitle">¡Felicidades y bienvenido/a al cambio!</p>
+
+            <div class="folio-box">
+                <div class="folio-label">Tu folio de afiliación es:</div>
+                <div class="folio-number" id="folioNumber">PRD-2025-00438</div>
+            </div>
+
+            <p class="confirmation-text">
+                Hemos enviado un correo electrónico con los detalles de tu registro y tu comprobante de afiliación. Por favor, revísalo y guárdalo en un lugar seguro.
+            </p>
+
+            <div class="action-buttons">
+                <a href="/index.html" class="primary-button">Volver al Inicio</a>
+                <a href="#" class="secondary-button" onclick="downloadVoucher()">Descargar Comprobante (PDF)</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-text">Partido de la Revolución Democrática<br>Construyendo un México más justo</div>
+    </footer>
+
+    <script>
+        // --- FUNCIÓN PLACEHOLDER PARA DESCARGA ---
+        function downloadVoucher() {
+            alert('Función para descargar el comprobante en PDF estará disponible próximamente.');
+        }
+
+        // --- ANIMACIÓN DE CONFETI ---
+        function createConfetti() {
+            const colors = ['#FFD700', '#28a745', '#3498db', '#e74c3c', '#f1c40f'];
+            const confettiCount = 50;
+            const container = document.body;
+
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                container.appendChild(confetti);
+
+                setTimeout(() => {
+                    confetti.remove();
+                }, 4000);
+            }
+        }
+        
+        // Iniciar la animación al cargar la página
+        window.onload = function() {
+            createConfetti();
+        };
+    </script>
+</body>
+</html>
