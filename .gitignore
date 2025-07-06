@@ -1,0 +1,91 @@
+# ===============================================
+# ARCHIVO .gitignore para Sistema PRD Zacatecas
+# ===============================================
+
+# CRÍTICO: Variables de entorno con API keys
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache
+
+# Logs
+*.log
+logs/
+
+# Base de datos local
+*.db
+*.sqlite
+*.sqlite3
+
+# OS específicos
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Archivos temporales
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Certificados y claves
+*.pem
+*.key
+*.crt
+*.p12
+
+# Imágenes de prueba subidas
+uploads/
+test_images/
