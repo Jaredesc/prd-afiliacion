@@ -102,7 +102,7 @@ var MUNICIPIOS_ZACATECAS = {
 // CLASE PRD DETECTOR SIN EMOJIS
 class PRDDetector {
     constructor() {
-        this.backendUrl = 'http://127.0.0.1:5001';
+        this.backendUrl = 'prd-afiliacion-production.up.railway.app';
         this.selectedFile = null;
         this.extractedData = null;
         this.currentStep = this.detectCurrentStep();
