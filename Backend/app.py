@@ -431,14 +431,14 @@ def extract_ine_for_prd():
         return error_response, 500
 
 
-# ===============================================
-# PUNTO DE ENTRADA PARA RAILWAY
-# ===============================================
-
+# Al final de tu archivo, asegúrate de tener:
 if __name__ == '__main__':
     print("🚀 Iniciando servidor PRD en Railway...")
+    print(f"📁 Trabajando desde: {os.getcwd()}")
     print(f"🌐 Puerto: {PORT}")
+    print(f"🏠 Host: {HOST}")
     print(f"🔑 Google Vision: {'✓ Configurada' if GOOGLE_API_KEY else '✗ Faltante'}")
+    print("="*60)
     
-    # Railway usa PORT environment variable
-    app.run(debug=False, host='0.0.0.0', port=PORT)
+    # IMPORTANTE: usar HOST y PORT de Railway
+    app.run(debug=False, host=HOST, port=PORT)

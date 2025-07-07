@@ -1,10 +1,7 @@
-# Python 3.11 slim (rápido y estable)
+# Python 3.11 slim
 FROM python:3.11-slim
 
-# Evitar prompts interactivos
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Variables para Python
+# Variables de entorno
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
@@ -26,14 +23,27 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Instalar Python packages
-RUN pip install --no-cache-dir --upgrade pip==23.3.1
+RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar código
+# Copiar TODO el código
 COPY . .
 
-# Puerto dinámico de Railway
+# Mover app.py a la raíz si está en backend/
+RUN if [ -f "backend/app.py" ]; then \
+        echo "📁 Moviendo backend/app.py a la raíz"; \
+        cp backend/app.py ./main_app.py; \
+    elif [ -f "app.py" ]; then \
+        echo "📁 app.py ya está en la raíz"; \
+        cp app.py ./main_app.py; \
+    else \
+        echo "❌ ERROR: No se encontró app.py"; \
+        find /app -name "app.py" -type f; \
+        exit 1; \
+    fi
+
+# Exponer puerto
 EXPOSE $PORT
 
-# Comando de inicio
-CMD cd backend && python app.py
+# Ejecutar la app desde la raíz
+CMD python main_app.py
