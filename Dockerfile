@@ -19,31 +19,22 @@ RUN apt-get update && apt-get install -y \
 # Directorio de trabajo
 WORKDIR /app
 
-# Copiar requirements
+# Copiar requirements primero (para cache de Docker)
 COPY requirements.txt .
 
-# Instalar Python packages
+# Instalar dependencias Python
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar TODO el código
+# Copiar TODO el proyecto
 COPY . .
 
-# Mover app.py a la raíz si está en backend/
-RUN if [ -f "backend/app.py" ]; then \
-        echo "📁 Moviendo backend/app.py a la raíz"; \
-        cp backend/app.py ./main_app.py; \
-    elif [ -f "app.py" ]; then \
-        echo "📁 app.py ya está en la raíz"; \
-        cp app.py ./main_app.py; \
-    else \
-        echo "❌ ERROR: No se encontró app.py"; \
-        find /app -name "app.py" -type f; \
-        exit 1; \
-    fi
+# Verificar que la estructura esté correcta
+RUN ls -la /app/
+RUN ls -la /app/backend/ || echo "❌ No existe /app/backend/"
 
 # Exponer puerto
 EXPOSE $PORT
 
-# Ejecutar la app desde la raíz
-CMD python main_app.py
+# Ejecutar directamente desde backend/ usando ruta absoluta
+CMD ["python", "/app/backend/app.py"]
