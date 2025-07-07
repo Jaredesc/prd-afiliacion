@@ -26,19 +26,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar TODO el proyecto
+# Copiar TODO el proyecto (HTML + Python)
 COPY . .
-
-# Verificar estructura (debugging)
-RUN echo "🔍 Verificando estructura del proyecto:"
-RUN ls -la /app/
-RUN echo "📁 Contenido de Backend/:"
-RUN ls -la /app/Backend/ || echo "❌ No existe /app/Backend/"
-RUN echo "🔍 Buscando todos los app.py:"
-RUN find /app -name "app.py" -type f || echo "❌ No se encontró app.py"
 
 # Exponer puerto
 EXPOSE $PORT
 
-# Ejecutar desde Backend/ (con B mayúscula) - RUTA CORREGIDA
+# Ejecutar Flask que sirve TANTO frontend como backend
 CMD ["python", "/app/Backend/app.py"]

@@ -296,7 +296,7 @@ function scanINE() {
             
             console.log('📤 Enviando imagen al servidor Railway...');
             
-            const BACKEND_URL = 'https://prd-afiliacion-production.up.railway.app/api/extract-ine-prd';
+            const BACKEND_URL = '/api/extract-ine-prd';
             
             const response = await fetch(BACKEND_URL, {
                 method: 'POST',
