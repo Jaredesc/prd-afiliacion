@@ -437,14 +437,8 @@ def extract_ine_for_prd():
 
 if __name__ == '__main__':
     print("🚀 Iniciando servidor PRD en Railway...")
-    print(f"📁 Ubicación: backend/app.py")
     print(f"🌐 Puerto: {PORT}")
-    print(f"🏠 Host: {HOST}")
     print(f"🔑 Google Vision: {'✓ Configurada' if GOOGLE_API_KEY else '✗ Faltante'}")
-    print("="*60)
     
-    # Para desarrollo local
-    app.run(debug=False, host=HOST, port=PORT)
-
-# Para Railway/Gunicorn - no cambiar esta línea
-# Gunicorn busca la variable 'app' automáticamente
+    # Railway usa PORT environment variable
+    app.run(debug=False, host='0.0.0.0', port=PORT)
