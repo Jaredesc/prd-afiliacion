@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y \
 # Directorio de trabajo
 WORKDIR /app
 
-# Copiar requirements primero (para cache de Docker)
+# Copiar requirements
 COPY requirements.txt .
 
 # Instalar dependencias Python
@@ -29,12 +29,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar TODO el proyecto
 COPY . .
 
-# Verificar que la estructura esté correcta
+# Verificar estructura (debugging)
+RUN echo "🔍 Verificando estructura del proyecto:"
 RUN ls -la /app/
-RUN ls -la /app/backend/ || echo "❌ No existe /app/backend/"
+RUN echo "📁 Contenido de Backend/:"
+RUN ls -la /app/Backend/ || echo "❌ No existe /app/Backend/"
+RUN echo "🔍 Buscando todos los app.py:"
+RUN find /app -name "app.py" -type f || echo "❌ No se encontró app.py"
 
 # Exponer puerto
 EXPOSE $PORT
 
-# Ejecutar directamente desde backend/ usando ruta absoluta
-CMD ["python", "/app/backend/app.py"]
+# Ejecutar desde Backend/ (con B mayúscula) - RUTA CORREGIDA
+CMD ["python", "/app/Backend/app.py"]
