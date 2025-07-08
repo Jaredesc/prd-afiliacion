@@ -41,8 +41,12 @@ CORS(app, origins=['*'],
 MYSQL_URL = os.getenv('MYSQL_URL')
 DATABASE_URL = os.getenv('DATABASE_URL')
 GOOGLE_API_KEY = os.getenv('GOOGLE_VISION_API_KEY')
+SECRET_KEY = os.getenv('SECRET_KEY', 'fallback_secret_key_2025')
 PORT = int(os.getenv('PORT', 5001))
 HOST = '0.0.0.0'
+
+# Configurar Flask SECRET_KEY
+app.config['SECRET_KEY'] = SECRET_KEY
 
 # Configurar SQLAlchemy para MySQL
 if MYSQL_URL:
@@ -86,10 +90,11 @@ else:
     print("✅ Google Vision API Key configurada")
 
 print("="*60)
-print("🚀 SISTEMA PRD ZACATECAS - MYSQL v1.0")
+print("🚀 SISTEMA PRD ZACATECAS - MYSQL v1.1 FIXED")
 print("📁 Backend: Backend/app.py")
 print("🌐 Frontend: Servido por Flask")
 print(f"🔑 API: {'✓' if GOOGLE_API_KEY else '✗'}")
+print(f"🔐 SECRET_KEY: {'✓' if SECRET_KEY != 'fallback_secret_key_2025' else '⚠️ Usando fallback'}")
 print("🗄️  DB: ✓ MySQL Railway")
 print("="*60)
 
@@ -140,34 +145,38 @@ def enhance_image_for_ocr(image):
     """Mejora la imagen para OCR"""
     print("🔧 Mejorando imagen...")
     
-    if len(image.shape) == 3:
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    else:
-        gray = image.copy()
-    
-    height, width = gray.shape
-    if width < 1000:
-        scale_factor = 1000 / width
-        new_width = int(width * scale_factor)
-        new_height = int(height * scale_factor)
-        gray = cv2.resize(gray, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
-    
-    denoised = cv2.bilateralFilter(gray, 9, 75, 75)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-    enhanced = clahe.apply(denoised)
-    
-    kernel = np.array([[-1,-1,-1], [-1, 9,-1], [-1,-1,-1]])
-    sharpened = cv2.filter2D(enhanced, -1, kernel)
-    
-    binary = cv2.adaptiveThreshold(sharpened, 255, 
-                                   cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-                                   cv2.THRESH_BINARY, 15, 10)
-    
-    print("✅ Imagen mejorada")
-    return binary
+    try:
+        if len(image.shape) == 3:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = image.copy()
+        
+        height, width = gray.shape
+        if width < 1000:
+            scale_factor = 1000 / width
+            new_width = int(width * scale_factor)
+            new_height = int(height * scale_factor)
+            gray = cv2.resize(gray, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
+        
+        denoised = cv2.bilateralFilter(gray, 9, 75, 75)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+        enhanced = clahe.apply(denoised)
+        
+        kernel = np.array([[-1,-1,-1], [-1, 9,-1], [-1,-1,-1]])
+        sharpened = cv2.filter2D(enhanced, -1, kernel)
+        
+        binary = cv2.adaptiveThreshold(sharpened, 255, 
+                                       cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+                                       cv2.THRESH_BINARY, 15, 10)
+        
+        print("✅ Imagen mejorada")
+        return binary
+    except Exception as e:
+        print(f"❌ Error mejorando imagen: {e}")
+        return image
 
 def analyze_with_vision_api(image_data):
-    """Google Vision API"""
+    """Google Vision API con mejor manejo de errores"""
     if not GOOGLE_API_KEY:
         return {'success': False, 'error': 'API Key no configurada', 'text': ''}
     
@@ -191,8 +200,13 @@ def analyze_with_vision_api(image_data):
             }]
         }
         
-        response = requests.post(url, json=request_body, timeout=45)
-        response.raise_for_status()
+        response = requests.post(url, json=request_body, timeout=30)
+        
+        print(f"📡 Google Vision status: {response.status_code}")
+        
+        if response.status_code != 200:
+            return {'success': False, 'error': f'Error API: {response.status_code}', 'text': ''}
+        
         result = response.json()
         
         if 'responses' in result and len(result['responses']) > 0:
@@ -219,45 +233,55 @@ def analyze_with_vision_api(image_data):
         else:
             return {'success': False, 'error': 'No se pudo extraer texto', 'text': ''}
             
+    except requests.exceptions.Timeout:
+        return {'success': False, 'error': 'Timeout de Google Vision API', 'text': ''}
+    except requests.exceptions.RequestException as e:
+        return {'success': False, 'error': f'Error de conexión: {str(e)}', 'text': ''}
     except Exception as e:
         return {'success': False, 'error': f'Error: {str(e)}', 'text': ''}
 
 def extract_ine_data_prd(text):
-    """Extracción básica de datos"""
+    """Extracción básica de datos mejorada"""
     print("📊 Extrayendo datos...")
     
     data = {}
     text = text.replace('\n', ' ').replace('\r', ' ')
     text = ' '.join(text.split())
     
-    # Patrones básicos
+    # Patrones básicos mejorados
     patterns = {
         'curp': r'([A-Z]{4}[0-9]{6}[HM][A-Z]{5}[0-9A-Z]{2})',
         'clave_elector': r'([A-Z]{6}[0-9]{8}[HM][0-9]{3})',
         'nombres': r'NOMBRE[\s:]*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]{2,40})',
-        'primer_apellido': r'PATERNO[\s:]*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]{2,30})',
+        'primer_apellido': r'(?:PATERNO|APELLIDO)[\s:]*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]{2,30})',
         'segundo_apellido': r'MATERNO[\s:]*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]{2,30})',
-        'municipio': r'(FRESNILLO|GUADALUPE|ZACATECAS|JEREZ|SOMBRERETE|PINOS|CALERA)',
+        'municipio': r'(FRESNILLO|GUADALUPE|ZACATECAS|JEREZ|SOMBRERETE|PINOS|CALERA|RÍO GRANDE|NOCHISTLÁN)',
         'codigo_postal': r'([0-9]{5})',
-        'calle': r'DOMICILIO[\s:]*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]{5,40})',
-        'colonia': r'COL[\s:]*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]{3,30})'
+        'calle': r'(?:DOMICILIO|CALLE)[\s:]*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s\d]{5,40})',
+        'colonia': r'(?:COL|COLONIA)[\s:]*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]{3,30})'
     }
     
     for field, pattern in patterns.items():
-        match = re.search(pattern, text, re.IGNORECASE)
-        if match:
-            value = match.group(1).strip()
-            if value:
-                data[field] = value
-                print(f"✅ {field}: {value}")
+        try:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                value = match.group(1).strip()
+                if value and len(value) > 1:
+                    data[field] = value
+                    print(f"✅ {field}: {value}")
+        except Exception as e:
+            print(f"⚠️ Error extrayendo {field}: {e}")
     
     # Extraer género de CURP
     if 'curp' in data and len(data['curp']) >= 11:
-        sexo_char = data['curp'][10]
-        if sexo_char == 'H':
-            data['sexo'] = 'masculino'
-        elif sexo_char == 'M':
-            data['sexo'] = 'femenino'
+        try:
+            sexo_char = data['curp'][10]
+            if sexo_char == 'H':
+                data['sexo'] = 'masculino'
+            elif sexo_char == 'M':
+                data['sexo'] = 'femenino'
+        except:
+            pass
     
     print(f"📊 Total extraído: {len(data)} campos")
     return data
@@ -268,7 +292,7 @@ def extract_ine_data_prd(text):
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    """Health check"""
+    """Health check mejorado"""
     try:
         # Verificar conexión a base de datos
         total_afiliaciones = Afiliacion.query.count()
@@ -285,10 +309,11 @@ def health_check():
     
     response_data = {
         'status': 'OK',
-        'service': 'PRD Zacatecas - MySQL v1.0',
+        'service': 'PRD Zacatecas - MySQL v1.1 FIXED',
         'backend': 'Backend/app.py',
         'frontend': 'Servido por Flask',
         'api_configured': bool(GOOGLE_API_KEY),
+        'secret_key_configured': SECRET_KEY != 'fallback_secret_key_2025',
         'database_status': db_status,
         'database_type': 'MySQL',
         'mysql_version': mysql_version,
@@ -301,7 +326,7 @@ def health_check():
 
 @app.route('/api/extract-ine-prd', methods=['POST', 'OPTIONS'])
 def extract_ine_for_prd():
-    """API para escaneo INE"""
+    """API para escaneo INE con mejor manejo de errores"""
     
     if request.method == 'OPTIONS':
         response = jsonify({'status': 'OK'})
@@ -324,8 +349,11 @@ def extract_ine_for_prd():
         if 'imagen' not in request.files:
             log_escaneo.exito = False
             log_escaneo.error_mensaje = 'No se recibió imagen'
-            db.session.add(log_escaneo)
-            db.session.commit()
+            try:
+                db.session.add(log_escaneo)
+                db.session.commit()
+            except:
+                pass
             
             error_response = jsonify({'success': False, 'error': 'No se recibió imagen'})
             error_response.headers.add('Access-Control-Allow-Origin', '*')
@@ -335,8 +363,11 @@ def extract_ine_for_prd():
         if file.filename == '':
             log_escaneo.exito = False
             log_escaneo.error_mensaje = 'Archivo vacío'
-            db.session.add(log_escaneo)
-            db.session.commit()
+            try:
+                db.session.add(log_escaneo)
+                db.session.commit()
+            except:
+                pass
             
             error_response = jsonify({'success': False, 'error': 'Archivo vacío'})
             error_response.headers.add('Access-Control-Allow-Origin', '*')
@@ -347,17 +378,26 @@ def extract_ine_for_prd():
         # Leer imagen
         image_data = file.read()
         
+        # Validar tamaño de archivo
+        if len(image_data) > 10 * 1024 * 1024:  # 10MB max
+            error_response = jsonify({'success': False, 'error': 'Archivo demasiado grande (máximo 10MB)'})
+            error_response.headers.add('Access-Control-Allow-Origin', '*')
+            return error_response, 400
+        
         # Convertir imagen
         nparr = np.frombuffer(image_data, np.uint8)
         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
         if image is None:
             log_escaneo.exito = False
-            log_escaneo.error_mensaje = 'Imagen inválida'
-            db.session.add(log_escaneo)
-            db.session.commit()
+            log_escaneo.error_mensaje = 'Imagen inválida o formato no soportado'
+            try:
+                db.session.add(log_escaneo)
+                db.session.commit()
+            except:
+                pass
             
-            error_response = jsonify({'success': False, 'error': 'Imagen inválida'})
+            error_response = jsonify({'success': False, 'error': 'Imagen inválida o formato no soportado'})
             error_response.headers.add('Access-Control-Allow-Origin', '*')
             return error_response, 400
         
@@ -369,8 +409,11 @@ def extract_ine_for_prd():
         if not success:
             log_escaneo.exito = False
             log_escaneo.error_mensaje = 'Error procesando imagen'
-            db.session.add(log_escaneo)
-            db.session.commit()
+            try:
+                db.session.add(log_escaneo)
+                db.session.commit()
+            except:
+                pass
             
             error_response = jsonify({'success': False, 'error': 'Error procesando imagen'})
             error_response.headers.add('Access-Control-Allow-Origin', '*')
@@ -383,15 +426,19 @@ def extract_ine_for_prd():
         
         if not vision_result['success']:
             # Reintentar con imagen original
+            print("🔄 Reintentando con imagen original...")
             vision_result = analyze_with_vision_api(image_data)
             
             if not vision_result['success']:
                 log_escaneo.exito = False
                 log_escaneo.error_mensaje = vision_result['error']
-                db.session.add(log_escaneo)
-                db.session.commit()
+                try:
+                    db.session.add(log_escaneo)
+                    db.session.commit()
+                except:
+                    pass
                 
-                error_response = jsonify({'success': False, 'error': vision_result['error']})
+                error_response = jsonify({'success': False, 'error': f"Error en Google Vision: {vision_result['error']}"})
                 error_response.headers.add('Access-Control-Allow-Origin', '*')
                 return error_response, 500
         
@@ -410,8 +457,11 @@ def extract_ine_for_prd():
         log_escaneo.confianza = vision_result.get('confidence', 0.95)
         log_escaneo.tiempo_procesamiento = processing_time
         
-        db.session.add(log_escaneo)
-        db.session.commit()
+        try:
+            db.session.add(log_escaneo)
+            db.session.commit()
+        except Exception as e:
+            print(f"⚠️ Error guardando log: {e}")
         
         # Respuesta final
         response_data = {
@@ -427,7 +477,7 @@ def extract_ine_for_prd():
                 'calle': extracted_data.get('calle', 'NO DETECTADO'),
                 'colonia': extracted_data.get('colonia', 'NO DETECTADO'),
                 'codigo_postal': extracted_data.get('codigo_postal', 'NO DETECTADO'),
-                'metodo_usado': 'Railway MySQL v1.0'
+                'metodo_usado': 'Railway MySQL v1.1 FIXED'
             },
             'validaciones': {
                 'curp_valida': 'curp' in extracted_data,
@@ -452,6 +502,7 @@ def extract_ine_for_prd():
         
     except Exception as e:
         print(f"💥 ERROR: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
         
         # Guardar error en log
         log_escaneo.exito = False
@@ -464,13 +515,13 @@ def extract_ine_for_prd():
         except Exception as db_error:
             print(f"Error guardando log: {db_error}")
         
-        error_response = jsonify({'success': False, 'error': f'Error interno: {str(e)}'})
+        error_response = jsonify({'success': False, 'error': f'Error interno del servidor: {str(e)}'})
         error_response.headers.add('Access-Control-Allow-Origin', '*')
         return error_response, 500
 
 @app.route('/api/guardar-afiliacion', methods=['POST', 'OPTIONS'])
 def guardar_afiliacion():
-    """Guardar nueva afiliación en base de datos"""
+    """Guardar nueva afiliación en base de datos con mejor validación"""
     
     if request.method == 'OPTIONS':
         response = jsonify({'status': 'OK'})
@@ -485,20 +536,33 @@ def guardar_afiliacion():
         if not data:
             return jsonify({'success': False, 'error': 'No se recibieron datos'}), 400
         
+        print(f"📋 Datos recibidos: {list(data.keys())}")
+        
         # Verificar campos obligatorios
         required_fields = ['nombres', 'primer_apellido', 'curp', 'clave_elector', 'email', 'telefono']
+        missing_fields = []
+        
         for field in required_fields:
-            if field not in data or not data[field]:
-                return jsonify({'success': False, 'error': f'Campo obligatorio faltante: {field}'}), 400
+            if field not in data or not data[field] or data[field].strip() == '':
+                missing_fields.append(field)
+        
+        if missing_fields:
+            error_msg = f'Campos obligatorios faltantes: {", ".join(missing_fields)}'
+            print(f"❌ {error_msg}")
+            return jsonify({'success': False, 'error': error_msg}), 400
+        
+        # Limpiar datos
+        curp_clean = data['curp'].strip().upper()
+        clave_elector_clean = data['clave_elector'].strip().upper()
         
         # Verificar si ya existe CURP o Clave de Elector
-        existing_curp = Afiliacion.query.filter_by(curp=data['curp']).first()
+        existing_curp = Afiliacion.query.filter_by(curp=curp_clean).first()
         if existing_curp:
-            return jsonify({'success': False, 'error': 'Ya existe una afiliación con esta CURP'}), 400
+            return jsonify({'success': False, 'error': f'Ya existe una afiliación con la CURP: {curp_clean}'}), 400
         
-        existing_clave = Afiliacion.query.filter_by(clave_elector=data['clave_elector']).first()
+        existing_clave = Afiliacion.query.filter_by(clave_elector=clave_elector_clean).first()
         if existing_clave:
-            return jsonify({'success': False, 'error': 'Ya existe una afiliación con esta Clave de Elector'}), 400
+            return jsonify({'success': False, 'error': f'Ya existe una afiliación con la Clave de Elector: {clave_elector_clean}'}), 400
         
         # Generar folio único
         folio = Afiliacion.generar_folio()
@@ -506,23 +570,23 @@ def guardar_afiliacion():
         # Crear nueva afiliación
         nueva_afiliacion = Afiliacion(
             folio=folio,
-            afiliador=data.get('afiliador', ''),
-            nombres=data['nombres'],
-            primer_apellido=data['primer_apellido'],
-            segundo_apellido=data.get('segundo_apellido', ''),
-            lugar_nacimiento=data.get('lugar_nacimiento', ''),
-            curp=data['curp'],
-            clave_elector=data['clave_elector'],
-            email=data['email'],
-            telefono=data['telefono'],
-            genero=data.get('genero', ''),
-            llegada_prd=data.get('llegada_prd', ''),
-            municipio=data.get('municipio', ''),
-            colonia=data.get('colonia', ''),
-            codigo_postal=data.get('codigo_postal', ''),
-            calle=data.get('calle', ''),
-            numero_exterior=data.get('numero_exterior', ''),
-            numero_interior=data.get('numero_interior', ''),
+            afiliador=data.get('afiliador', '').strip(),
+            nombres=data['nombres'].strip(),
+            primer_apellido=data['primer_apellido'].strip(),
+            segundo_apellido=data.get('segundo_apellido', '').strip(),
+            lugar_nacimiento=data.get('lugar_nacimiento', '').strip(),
+            curp=curp_clean,
+            clave_elector=clave_elector_clean,
+            email=data['email'].strip().lower(),
+            telefono=data['telefono'].strip(),
+            genero=data.get('genero', '').strip(),
+            llegada_prd=data.get('llegada_prd', '').strip(),
+            municipio=data.get('municipio', '').strip(),
+            colonia=data.get('colonia', '').strip(),
+            codigo_postal=data.get('codigo_postal', '').strip(),
+            calle=data.get('calle', '').strip(),
+            numero_exterior=data.get('numero_exterior', '').strip(),
+            numero_interior=data.get('numero_interior', '').strip(),
             declaracion_veracidad=data.get('declaracion_veracidad', True),
             declaracion_principios=data.get('declaracion_principios', True),
             terminos_condiciones=data.get('terminos_condiciones', True),
@@ -541,7 +605,7 @@ def guardar_afiliacion():
             'success': True,
             'folio': folio,
             'id': nueva_afiliacion.id,
-            'mensaje': 'Afiliación guardada exitosamente'
+            'mensaje': 'Afiliación guardada exitosamente en MySQL'
         }
         
         response = jsonify(response_data)
@@ -592,6 +656,6 @@ if __name__ == '__main__':
     # Crear tablas si no existen
     create_tables()
     
-    print("🚀 Iniciando sistema completo con MySQL...")
+    print("🚀 Iniciando sistema completo con MySQL FIXED...")
     print(f"🌐 Frontend + Backend + MySQL en puerto: {PORT}")
     app.run(debug=False, host=HOST, port=PORT)

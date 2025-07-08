@@ -62,6 +62,42 @@
         .error-message.show {
             display: block;
         }
+
+        /* Estilo para mostrar resumen de datos */
+        .data-summary {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .data-summary h4 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .data-summary .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .data-summary .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .data-summary .summary-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .data-summary .summary-value {
+            color: #28a745;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -98,6 +134,14 @@
             
             <div class="content">
                 <h2 class="section-title">Términos y Condiciones</h2>
+                
+                <!-- Resumen de datos capturados -->
+                <div class="data-summary" id="dataSummary">
+                    <h4>📋 Resumen de tu información:</h4>
+                    <div id="summaryContent">
+                        <!-- Se llenará con JavaScript -->
+                    </div>
+                </div>
                 
                 <form id="agreementsForm" novalidate>
                     <div class="agreement-group" id="veracidad-group">
@@ -140,7 +184,7 @@
     <script src="../assets/js/main.js"></script>
     
     <script>
-        // CÓDIGO JAVASCRIPT COMPLETO PARA MYSQL - PASO 2
+        // CÓDIGO JAVASCRIPT CORREGIDO PARA MYSQL - PASO 2
 
         // --- VALIDACIÓN Y NAVEGACIÓN DEL FORMULARIO ---
         function nextStep() {
@@ -180,45 +224,18 @@
                 finalizarBtn.disabled = true;
                 finalizarBtn.textContent = 'Guardando en MySQL...';
                 
-                // Recopilar TODOS los datos del formulario del localStorage
-                const formData = {
-                    // Datos del paso 1 (obtenidos del localStorage)
-                    afiliador: localStorage.getItem('afiliador') || '',
-                    nombres: localStorage.getItem('nombres') || '',
-                    primer_apellido: localStorage.getItem('primerApellido') || '',
-                    segundo_apellido: localStorage.getItem('segundoApellido') || '',
-                    lugar_nacimiento: localStorage.getItem('lugarNacimiento') || '',
-                    curp: localStorage.getItem('curp') || '',
-                    clave_elector: localStorage.getItem('claveElector') || '',
-                    email: localStorage.getItem('email') || '',
-                    telefono: localStorage.getItem('telefono') || '',
-                    genero: localStorage.getItem('genero') || '',
-                    llegada_prd: localStorage.getItem('llegadaPRD') || '',
-                    municipio: localStorage.getItem('municipio') || '',
-                    colonia: localStorage.getItem('colonia') || '',
-                    codigo_postal: localStorage.getItem('codigoPostal') || '',
-                    calle: localStorage.getItem('calle') || '',
-                    numero_exterior: localStorage.getItem('numeroExterior') || '',
-                    numero_interior: localStorage.getItem('numeroInterior') || '',
-                    
-                    // Datos del paso 2 (acuerdos)
-                    declaracion_veracidad: document.getElementById('declaracionVeracidad').checked,
-                    declaracion_principios: document.getElementById('declaracionPrincipios').checked,
-                    terminos_condiciones: document.getElementById('terminosCondiciones').checked,
-                    
-                    // Metadatos
-                    metodo_captura: localStorage.getItem('metodo_captura') || 'manual',
-                    timestamp: new Date().toISOString()
-                };
+                // Recopilar TODOS los datos del localStorage con validación
+                const formData = buildFormData();
                 
-                console.log('Enviando datos a MySQL:', formData);
+                console.log('📊 Datos completos para enviar a MySQL:', formData);
                 
-                // Verificar que tenemos los campos obligatorios
-                const requiredFields = ['nombres', 'primer_apellido', 'curp', 'clave_elector', 'email', 'telefono'];
-                const missingFields = requiredFields.filter(field => !formData[field]);
+                // Verificar campos críticos antes de enviar
+                const criticalFields = ['nombres', 'primer_apellido', 'curp', 'clave_elector', 'email', 'telefono'];
+                const missingCritical = criticalFields.filter(field => !formData[field] || formData[field].trim() === '');
                 
-                if (missingFields.length > 0) {
-                    alert(`❌ Faltan datos obligatorios: ${missingFields.join(', ')}\n\nRegresa al paso anterior.`);
+                if (missingCritical.length > 0) {
+                    console.error('❌ Faltan campos críticos:', missingCritical);
+                    alert(`❌ Faltan datos obligatorios: ${missingCritical.join(', ')}\n\nRegresa al paso anterior para completarlos.`);
                     finalizarBtn.disabled = false;
                     finalizarBtn.textContent = 'Finalizar Afiliación 🚀';
                     return;
@@ -232,10 +249,15 @@
                     },
                     body: JSON.stringify(formData)
                 })
-                .then(response => response.json())
+                .then(response => {
+                    console.log('📡 Respuesta del servidor:', response.status);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('📄 Respuesta completa:', data);
+                    
                     if (data.success) {
-                        console.log('✅ Afiliación guardada en MySQL:', data);
+                        console.log('✅ Afiliación guardada exitosamente en MySQL:', data);
                         
                         // Guardar el folio para mostrarlo en la página de confirmación
                         localStorage.setItem('folioAfiliacion', data.folio);
@@ -247,7 +269,7 @@
                         window.location.href = "confirmacion.html";
                     } else {
                         console.error('❌ Error guardando en MySQL:', data.error);
-                        alert(`Error guardando en la base de datos: ${data.error}`);
+                        alert(`❌ Error guardando en la base de datos:\n\n${data.error}\n\nPor favor intenta de nuevo.`);
                         
                         // Re-habilitar botón
                         finalizarBtn.disabled = false;
@@ -256,7 +278,7 @@
                 })
                 .catch(error => {
                     console.error('💥 Error de red con MySQL:', error);
-                    alert('Error de conexión con la base de datos MySQL. Por favor intenta de nuevo.');
+                    alert('❌ Error de conexión con la base de datos MySQL.\n\nPor favor verifica tu conexión e intenta de nuevo.');
                     
                     // Re-habilitar botón
                     finalizarBtn.disabled = false;
@@ -272,6 +294,52 @@
             }
         }
 
+        // Función para construir el objeto de datos completo
+        function buildFormData() {
+            // Mapear todos los campos del localStorage a los nombres esperados por la API
+            const formData = {
+                // Datos del paso 1 - mapeo correcto
+                afiliador: localStorage.getItem('afiliador') || '',
+                nombres: localStorage.getItem('nombres') || '',
+                primer_apellido: localStorage.getItem('primerApellido') || '',
+                segundo_apellido: localStorage.getItem('segundoApellido') || '',
+                lugar_nacimiento: localStorage.getItem('lugarNacimiento') || '',
+                curp: localStorage.getItem('curp') || '',
+                clave_elector: localStorage.getItem('claveElector') || '',
+                email: localStorage.getItem('email') || '',
+                telefono: localStorage.getItem('telefono') || '',
+                genero: localStorage.getItem('genero') || '',
+                llegada_prd: localStorage.getItem('llegadaPRD') || '',
+                municipio: localStorage.getItem('municipio') || '',
+                colonia: localStorage.getItem('colonia') || '',
+                codigo_postal: localStorage.getItem('codigoPostal') || '',
+                calle: localStorage.getItem('calle') || '',
+                numero_exterior: localStorage.getItem('numeroExterior') || '',
+                numero_interior: localStorage.getItem('numeroInterior') || '',
+                
+                // Datos del paso 2 (acuerdos)
+                declaracion_veracidad: document.getElementById('declaracionVeracidad').checked,
+                declaracion_principios: document.getElementById('declaracionPrincipios').checked,
+                terminos_condiciones: document.getElementById('terminosCondiciones').checked,
+                
+                // Metadatos
+                metodo_captura: localStorage.getItem('metodo_captura') || 'manual',
+                timestamp: new Date().toISOString()
+            };
+
+            // Log para debugging
+            console.log('🔍 Debug - Datos del localStorage:');
+            Object.keys(formData).forEach(key => {
+                if (formData[key]) {
+                    console.log(`  ${key}: "${formData[key]}"`);
+                } else {
+                    console.warn(`  ⚠️ ${key}: VACÍO`);
+                }
+            });
+
+            return formData;
+        }
+
         function clearLocalStorageData() {
             // Limpiar todos los datos del formulario del localStorage (excepto folio)
             const keys = [
@@ -284,6 +352,77 @@
             keys.forEach(key => {
                 localStorage.removeItem(key);
             });
+            
+            console.log('🧹 LocalStorage limpiado');
+        }
+
+        // Función para mostrar resumen de datos
+        function displayDataSummary() {
+            const summaryContent = document.getElementById('summaryContent');
+            
+            // Obtener datos críticos del localStorage
+            const criticalData = {
+                'Nombre completo': `${localStorage.getItem('nombres') || ''} ${localStorage.getItem('primerApellido') || ''} ${localStorage.getItem('segundoApellido') || ''}`.trim(),
+                'CURP': localStorage.getItem('curp') || 'No capturado',
+                'Clave de Elector': localStorage.getItem('claveElector') || 'No capturado',
+                'Email': localStorage.getItem('email') || 'No capturado',
+                'Teléfono': localStorage.getItem('telefono') || 'No capturado',
+                'Municipio': localStorage.getItem('municipio') || 'No capturado',
+                'Cómo llegas al PRD': localStorage.getItem('llegadaPRD') || 'No capturado'
+            };
+
+            let html = '';
+            let missingCount = 0;
+
+            Object.entries(criticalData).forEach(([label, value]) => {
+                const isEmpty = !value || value === 'No capturado' || value.trim() === '';
+                if (isEmpty) missingCount++;
+                
+                html += `
+                    <div class="summary-item">
+                        <span class="summary-label">${label}:</span>
+                        <span class="summary-value" style="color: ${isEmpty ? '#dc3545' : '#28a745'}">
+                            ${isEmpty ? 'NO CAPTURADO' : value}
+                        </span>
+                    </div>
+                `;
+            });
+
+            summaryContent.innerHTML = html;
+
+            // Mostrar advertencia si faltan datos
+            if (missingCount > 0) {
+                const warning = document.createElement('div');
+                warning.style.cssText = 'background: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px; border-radius: 5px; margin-top: 15px;';
+                warning.innerHTML = `⚠️ <strong>Atención:</strong> Faltan ${missingCount} datos importantes. <a href="paso 1.html" style="color: #856404; text-decoration: underline;">Regresar al paso anterior</a> para completarlos.`;
+                summaryContent.appendChild(warning);
+            }
+        }
+
+        // Función para verificar datos antes de proceder
+        function checkDataIntegrity() {
+            const requiredFields = [
+                'nombres', 'primerApellido', 'curp', 'claveElector', 'email', 'telefono'
+            ];
+
+            const missingFields = requiredFields.filter(field => {
+                const value = localStorage.getItem(field);
+                return !value || value.trim() === '';
+            });
+
+            if (missingFields.length > 0) {
+                console.warn('⚠️ Datos faltantes detectados:', missingFields);
+                
+                // Mostrar alerta y opción de regresar
+                const shouldGoBack = confirm(`❌ Faltan datos obligatorios:\n\n${missingFields.join(', ')}\n\n¿Quieres regresar al paso anterior para completarlos?`);
+                
+                if (shouldGoBack) {
+                    window.location.href = "paso 1.html";
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         // --- VALIDACIÓN EN TIEMPO REAL ---
@@ -304,13 +443,26 @@
                 });
             });
             
-            // Debug: mostrar datos disponibles del localStorage
-            console.log('Datos disponibles del paso anterior para MySQL:', {
-                afiliador: localStorage.getItem('afiliador'),
-                nombres: localStorage.getItem('nombres'),
-                curp: localStorage.getItem('curp'),
-                email: localStorage.getItem('email'),
-                municipio: localStorage.getItem('municipio')
+            // Verificar integridad de datos y mostrar resumen
+            checkDataIntegrity();
+            displayDataSummary();
+            
+            // Debug: mostrar todos los datos disponibles del localStorage
+            console.log('📊 Datos completos disponibles del localStorage:');
+            const allKeys = [
+                'afiliador', 'nombres', 'primerApellido', 'segundoApellido',
+                'lugarNacimiento', 'curp', 'claveElector', 'email', 'telefono',
+                'genero', 'llegadaPRD', 'municipio', 'colonia', 'codigoPostal',
+                'calle', 'numeroExterior', 'numeroInterior', 'metodo_captura'
+            ];
+            
+            allKeys.forEach(key => {
+                const value = localStorage.getItem(key);
+                if (value) {
+                    console.log(`  ✅ ${key}: "${value}"`);
+                } else {
+                    console.warn(`  ❌ ${key}: FALTANTE`);
+                }
             });
         });
 
