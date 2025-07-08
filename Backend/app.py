@@ -90,7 +90,7 @@ else:
     print("✅ Google Vision API Key configurada")
 
 print("="*60)
-print("🚀 SISTEMA PRD ZACATECAS - MYSQL v1.1 FIXED")
+print("🚀 SISTEMA PRD ZACATECAS - MYSQL v1.2 DEBUG")
 print("📁 Backend: Backend/app.py")
 print("🌐 Frontend: Servido por Flask")
 print(f"🔑 API: {'✓' if GOOGLE_API_KEY else '✗'}")
@@ -143,7 +143,7 @@ def assets(filename):
 
 def enhance_image_for_ocr(image):
     """Mejora la imagen para OCR"""
-    print("🔧 Mejorando imagen...")
+    print("🔧 [DEBUG] Mejorando imagen...")
     
     try:
         if len(image.shape) == 3:
@@ -152,11 +152,14 @@ def enhance_image_for_ocr(image):
             gray = image.copy()
         
         height, width = gray.shape
+        print(f"📐 [DEBUG] Dimensiones originales: {width}x{height}")
+        
         if width < 1000:
             scale_factor = 1000 / width
             new_width = int(width * scale_factor)
             new_height = int(height * scale_factor)
             gray = cv2.resize(gray, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
+            print(f"📐 [DEBUG] Redimensionado a: {new_width}x{new_height}")
         
         denoised = cv2.bilateralFilter(gray, 9, 75, 75)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
@@ -169,93 +172,31 @@ def enhance_image_for_ocr(image):
                                        cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
                                        cv2.THRESH_BINARY, 15, 10)
         
-        print("✅ Imagen mejorada")
+        print("✅ [DEBUG] Imagen mejorada exitosamente")
         return binary
+        
     except Exception as e:
-        print(f"❌ Error mejorando imagen: {e}")
+        print(f"❌ [DEBUG] Error mejorando imagen: {e}")
         return image
 
-def analyze_with_vision_api(image_data):
-    """Google Vision API con mejor manejo de errores"""
-    if not GOOGLE_API_KEY:
-        return {'success': False, 'error': 'API Key no configurada', 'text': ''}
-    
-    print("🔍 Procesando con Google Vision...")
-    
-    url = f"https://vision.googleapis.com/v1/images:annotate?key={GOOGLE_API_KEY}"
-    
-    try:
-        image_base64 = base64.b64encode(image_data).decode('utf-8')
-        
-        request_body = {
-            "requests": [{
-                "image": {"content": image_base64},
-                "features": [
-                    {"type": "TEXT_DETECTION", "maxResults": 50},
-                    {"type": "DOCUMENT_TEXT_DETECTION", "maxResults": 50}
-                ],
-                "imageContext": {
-                    "languageHints": ["es", "en"]
-                }
-            }]
-        }
-        
-        response = requests.post(url, json=request_body, timeout=30)
-        
-        print(f"📡 Google Vision status: {response.status_code}")
-        
-        if response.status_code != 200:
-            return {'success': False, 'error': f'Error API: {response.status_code}', 'text': ''}
-        
-        result = response.json()
-        
-        if 'responses' in result and len(result['responses']) > 0:
-            response_data = result['responses'][0]
-            
-            if 'error' in response_data:
-                return {'success': False, 'error': str(response_data['error']), 'text': ''}
-            
-            full_text = ""
-            
-            if 'fullTextAnnotation' in response_data:
-                full_text += response_data['fullTextAnnotation']['text'] + " "
-            
-            if 'textAnnotations' in response_data and len(response_data['textAnnotations']) > 0:
-                additional_text = response_data['textAnnotations'][0]['description']
-                full_text += additional_text + " "
-            
-            full_text = ' '.join(full_text.split())
-            
-            if not full_text.strip():
-                return {'success': False, 'error': 'No se pudo extraer texto', 'text': ''}
-            
-            return {'success': True, 'text': full_text, 'confidence': 0.95}
-        else:
-            return {'success': False, 'error': 'No se pudo extraer texto', 'text': ''}
-            
-    except requests.exceptions.Timeout:
-        return {'success': False, 'error': 'Timeout de Google Vision API', 'text': ''}
-    except requests.exceptions.RequestException as e:
-        return {'success': False, 'error': f'Error de conexión: {str(e)}', 'text': ''}
-    except Exception as e:
-        return {'success': False, 'error': f'Error: {str(e)}', 'text': ''}
-
-def extract_ine_data_prd(text):
-    """Extracción básica de datos mejorada"""
-    print("📊 Extrayendo datos...")
+def extract_ine_data_advanced(text):
+    """Extracción avanzada de datos con mejor debugging"""
+    print("📊 [DEBUG] Iniciando extracción de datos...")
+    print(f"📝 [DEBUG] Texto a procesar (primeros 200 chars): {text[:200]}")
     
     data = {}
-    text = text.replace('\n', ' ').replace('\r', ' ')
-    text = ' '.join(text.split())
+    text_clean = text.replace('\n', ' ').replace('\r', ' ')
+    text_clean = ' '.join(text_clean.split())
+    text_upper = text_clean.upper()
     
-    # Patrones básicos mejorados
+    # Patrones mejorados con debugging
     patterns = {
         'curp': r'([A-Z]{4}[0-9]{6}[HM][A-Z]{5}[0-9A-Z]{2})',
         'clave_elector': r'([A-Z]{6}[0-9]{8}[HM][0-9]{3})',
-        'nombres': r'NOMBRE[\s:]*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]{2,40})',
+        'nombres': r'(?:NOMBRE|NOM)[\s:]*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]{2,40})',
         'primer_apellido': r'(?:PATERNO|APELLIDO)[\s:]*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]{2,30})',
         'segundo_apellido': r'MATERNO[\s:]*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]{2,30})',
-        'municipio': r'(FRESNILLO|GUADALUPE|ZACATECAS|JEREZ|SOMBRERETE|PINOS|CALERA|RÍO GRANDE|NOCHISTLÁN)',
+        'municipio': r'(FRESNILLO|GUADALUPE|ZACATECAS|JEREZ|SOMBRERETE|PINOS|CALERA|RÍO GRANDE|NOCHISTLÁN|MAZAPIL)',
         'codigo_postal': r'([0-9]{5})',
         'calle': r'(?:DOMICILIO|CALLE)[\s:]*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s\d]{5,40})',
         'colonia': r'(?:COL|COLONIA)[\s:]*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]{3,30})'
@@ -263,14 +204,18 @@ def extract_ine_data_prd(text):
     
     for field, pattern in patterns.items():
         try:
-            match = re.search(pattern, text, re.IGNORECASE)
+            match = re.search(pattern, text_upper, re.IGNORECASE)
             if match:
                 value = match.group(1).strip()
                 if value and len(value) > 1:
                     data[field] = value
-                    print(f"✅ {field}: {value}")
+                    print(f"✅ [DEBUG] {field}: {value}")
+                else:
+                    print(f"⚠️ [DEBUG] {field}: valor muy corto: '{value}'")
+            else:
+                print(f"❌ [DEBUG] {field}: no encontrado")
         except Exception as e:
-            print(f"⚠️ Error extrayendo {field}: {e}")
+            print(f"⚠️ [DEBUG] Error extrayendo {field}: {e}")
     
     # Extraer género de CURP
     if 'curp' in data and len(data['curp']) >= 11:
@@ -278,12 +223,14 @@ def extract_ine_data_prd(text):
             sexo_char = data['curp'][10]
             if sexo_char == 'H':
                 data['sexo'] = 'masculino'
+                print(f"✅ [DEBUG] sexo: masculino (desde CURP)")
             elif sexo_char == 'M':
                 data['sexo'] = 'femenino'
-        except:
-            pass
+                print(f"✅ [DEBUG] sexo: femenino (desde CURP)")
+        except Exception as e:
+            print(f"⚠️ [DEBUG] Error extrayendo sexo de CURP: {e}")
     
-    print(f"📊 Total extraído: {len(data)} campos")
+    print(f"📊 [DEBUG] Total de campos extraídos: {len(data)}")
     return data
 
 # ===============================================
@@ -292,7 +239,9 @@ def extract_ine_data_prd(text):
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    """Health check mejorado"""
+    """Health check con debugging"""
+    print("🏥 [DEBUG] Health check solicitado")
+    
     try:
         # Verificar conexión a base de datos
         total_afiliaciones = Afiliacion.query.count()
@@ -302,14 +251,17 @@ def health_check():
         test_query = db.session.execute(db.text("SELECT VERSION()")).fetchone()
         mysql_version = test_query[0] if test_query else 'Unknown'
         
+        print(f"✅ [DEBUG] DB OK - {total_afiliaciones} afiliaciones")
+        
     except Exception as e:
         total_afiliaciones = 'Error'
         db_status = f'Error: {str(e)}'
         mysql_version = 'Error'
+        print(f"❌ [DEBUG] DB Error: {e}")
     
     response_data = {
         'status': 'OK',
-        'service': 'PRD Zacatecas - MySQL v1.1 FIXED',
+        'service': 'PRD Zacatecas - MySQL v1.2 DEBUG',
         'backend': 'Backend/app.py',
         'frontend': 'Servido por Flask',
         'api_configured': bool(GOOGLE_API_KEY),
@@ -317,7 +269,11 @@ def health_check():
         'database_status': db_status,
         'database_type': 'MySQL',
         'mysql_version': mysql_version,
-        'total_afiliaciones': total_afiliaciones
+        'total_afiliaciones': total_afiliaciones,
+        'debug_info': {
+            'google_api_key_length': len(GOOGLE_API_KEY) if GOOGLE_API_KEY else 0,
+            'timestamp': datetime.utcnow().isoformat()
+        }
     }
     
     response = jsonify(response_data)
@@ -326,7 +282,7 @@ def health_check():
 
 @app.route('/api/extract-ine-prd', methods=['POST', 'OPTIONS'])
 def extract_ine_for_prd():
-    """API para escaneo INE con mejor manejo de errores"""
+    """API para escaneo INE - VERSIÓN CON DEBUG COMPLETO"""
     
     if request.method == 'OPTIONS':
         response = jsonify({'status': 'OK'})
@@ -335,133 +291,259 @@ def extract_ine_for_prd():
         response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
         return response
     
-    print("📸 Procesando escaneo INE...")
+    print("="*50)
+    print("📸 [DEBUG] INICIANDO PROCESAMIENTO DE IMAGEN INE")
+    print("="*50)
+    
     start_time = time.time()
     user_ip = request.remote_addr
     
-    # Crear log de escaneo
-    log_escaneo = LogEscaneo(
-        ip_usuario=user_ip,
-        fecha_escaneo=datetime.utcnow()
-    )
+    # Crear log de escaneo básico
+    log_data = {
+        'ip_usuario': user_ip,
+        'fecha_escaneo': datetime.utcnow(),
+        'exito': False,
+        'error_mensaje': ''
+    }
     
     try:
+        # PASO 1: Verificar que se recibió archivo
+        print("🔍 [DEBUG] PASO 1: Verificando archivo recibido...")
+        
         if 'imagen' not in request.files:
-            log_escaneo.exito = False
-            log_escaneo.error_mensaje = 'No se recibió imagen'
-            try:
-                db.session.add(log_escaneo)
-                db.session.commit()
-            except:
-                pass
+            error_msg = 'No se recibió imagen en request.files'
+            print(f"❌ [DEBUG] {error_msg}")
+            log_data['error_mensaje'] = error_msg
             
-            error_response = jsonify({'success': False, 'error': 'No se recibió imagen'})
+            error_response = jsonify({'success': False, 'error': error_msg})
             error_response.headers.add('Access-Control-Allow-Origin', '*')
             return error_response, 400
 
         file = request.files['imagen']
         if file.filename == '':
-            log_escaneo.exito = False
-            log_escaneo.error_mensaje = 'Archivo vacío'
-            try:
-                db.session.add(log_escaneo)
-                db.session.commit()
-            except:
-                pass
+            error_msg = 'Archivo con nombre vacío'
+            print(f"❌ [DEBUG] {error_msg}")
+            log_data['error_mensaje'] = error_msg
             
-            error_response = jsonify({'success': False, 'error': 'Archivo vacío'})
+            error_response = jsonify({'success': False, 'error': error_msg})
             error_response.headers.add('Access-Control-Allow-Origin', '*')
             return error_response, 400
 
-        print(f"📎 Procesando: {file.filename}")
+        print(f"✅ [DEBUG] Archivo recibido: {file.filename}")
+        print(f"📊 [DEBUG] Content-Type: {file.content_type}")
         
-        # Leer imagen
-        image_data = file.read()
+        # PASO 2: Leer y validar imagen
+        print("🔍 [DEBUG] PASO 2: Leyendo imagen...")
         
-        # Validar tamaño de archivo
-        if len(image_data) > 10 * 1024 * 1024:  # 10MB max
-            error_response = jsonify({'success': False, 'error': 'Archivo demasiado grande (máximo 10MB)'})
+        try:
+            image_data = file.read()
+            file_size = len(image_data)
+            print(f"📊 [DEBUG] Tamaño de archivo: {file_size:,} bytes ({file_size/1024/1024:.2f} MB)")
+        except Exception as e:
+            error_msg = f'Error leyendo imagen: {str(e)}'
+            print(f"❌ [DEBUG] {error_msg}")
+            log_data['error_mensaje'] = error_msg
+            
+            error_response = jsonify({'success': False, 'error': error_msg})
             error_response.headers.add('Access-Control-Allow-Origin', '*')
             return error_response, 400
         
-        # Convertir imagen
-        nparr = np.frombuffer(image_data, np.uint8)
-        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        
-        if image is None:
-            log_escaneo.exito = False
-            log_escaneo.error_mensaje = 'Imagen inválida o formato no soportado'
-            try:
-                db.session.add(log_escaneo)
-                db.session.commit()
-            except:
-                pass
+        # Validar tamaño
+        if file_size > 10 * 1024 * 1024:  # 10MB max
+            error_msg = 'Archivo demasiado grande (máximo 10MB)'
+            print(f"❌ [DEBUG] {error_msg}")
+            log_data['error_mensaje'] = error_msg
             
-            error_response = jsonify({'success': False, 'error': 'Imagen inválida o formato no soportado'})
+            error_response = jsonify({'success': False, 'error': error_msg})
             error_response.headers.add('Access-Control-Allow-Origin', '*')
             return error_response, 400
         
-        # Mejorar imagen
-        enhanced_image = enhance_image_for_ocr(image)
+        # PASO 3: Verificar Google Vision API
+        print("🔍 [DEBUG] PASO 3: Verificando Google Vision API...")
         
-        # Convertir a bytes
-        success, enhanced_buffer = cv2.imencode('.png', enhanced_image)
-        if not success:
-            log_escaneo.exito = False
-            log_escaneo.error_mensaje = 'Error procesando imagen'
-            try:
-                db.session.add(log_escaneo)
-                db.session.commit()
-            except:
-                pass
+        if not GOOGLE_API_KEY:
+            error_msg = 'Google Vision API Key no configurada'
+            print(f"❌ [DEBUG] {error_msg}")
+            log_data['error_mensaje'] = error_msg
             
-            error_response = jsonify({'success': False, 'error': 'Error procesando imagen'})
+            error_response = jsonify({'success': False, 'error': error_msg})
             error_response.headers.add('Access-Control-Allow-Origin', '*')
             return error_response, 500
         
-        enhanced_image_data = enhanced_buffer.tobytes()
+        print(f"✅ [DEBUG] API Key configurada (longitud: {len(GOOGLE_API_KEY)})")
         
-        # Analizar con Google Vision
-        vision_result = analyze_with_vision_api(enhanced_image_data)
-        
-        if not vision_result['success']:
-            # Reintentar con imagen original
-            print("🔄 Reintentando con imagen original...")
-            vision_result = analyze_with_vision_api(image_data)
-            
-            if not vision_result['success']:
-                log_escaneo.exito = False
-                log_escaneo.error_mensaje = vision_result['error']
-                try:
-                    db.session.add(log_escaneo)
-                    db.session.commit()
-                except:
-                    pass
-                
-                error_response = jsonify({'success': False, 'error': f"Error en Google Vision: {vision_result['error']}"})
-                error_response.headers.add('Access-Control-Allow-Origin', '*')
-                return error_response, 500
-        
-        print(f"📝 Texto extraído: {len(vision_result['text'])} caracteres")
-        
-        # Extraer datos
-        extracted_data = extract_ine_data_prd(vision_result['text'])
-        
-        # Calcular tiempo de procesamiento
-        processing_time = time.time() - start_time
-        
-        # Actualizar log de escaneo
-        log_escaneo.exito = True
-        log_escaneo.campos_detectados = list(extracted_data.keys())
-        log_escaneo.texto_extraido = vision_result['text'][:1000]  # Truncar para ahorrar espacio
-        log_escaneo.confianza = vision_result.get('confidence', 0.95)
-        log_escaneo.tiempo_procesamiento = processing_time
+        # PASO 4: Procesar imagen con OpenCV
+        print("🔍 [DEBUG] PASO 4: Procesando imagen con OpenCV...")
         
         try:
+            # Convertir a array numpy
+            nparr = np.frombuffer(image_data, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                error_msg = 'Imagen inválida o formato no soportado'
+                print(f"❌ [DEBUG] {error_msg}")
+                log_data['error_mensaje'] = error_msg
+                
+                error_response = jsonify({'success': False, 'error': error_msg})
+                error_response.headers.add('Access-Control-Allow-Origin', '*')
+                return error_response, 400
+            
+            print(f"✅ [DEBUG] Imagen decodificada: {image.shape}")
+            
+            # Mejorar imagen
+            enhanced_image = enhance_image_for_ocr(image)
+            
+            # Convertir imagen mejorada a bytes
+            success, enhanced_buffer = cv2.imencode('.png', enhanced_image)
+            if not success:
+                print("⚠️ [DEBUG] Error mejorando imagen, usando original")
+                enhanced_image_data = image_data
+            else:
+                enhanced_image_data = enhanced_buffer.tobytes()
+                print(f"✅ [DEBUG] Imagen mejorada: {len(enhanced_image_data)} bytes")
+            
+        except Exception as e:
+            error_msg = f'Error procesando imagen con OpenCV: {str(e)}'
+            print(f"❌ [DEBUG] {error_msg}")
+            print(f"❌ [DEBUG] Traceback: {traceback.format_exc()}")
+            
+            # Usar imagen original si falla el procesamiento
+            enhanced_image_data = image_data
+            print("⚠️ [DEBUG] Usando imagen original sin procesamiento")
+        
+        # PASO 5: Enviar a Google Vision API
+        print("🔍 [DEBUG] PASO 5: Enviando a Google Vision API...")
+        
+        try:
+            image_base64 = base64.b64encode(enhanced_image_data).decode('utf-8')
+            print(f"📊 [DEBUG] Imagen codificada en base64: {len(image_base64)} caracteres")
+            
+            url = f"https://vision.googleapis.com/v1/images:annotate?key={GOOGLE_API_KEY}"
+            
+            request_body = {
+                "requests": [{
+                    "image": {"content": image_base64},
+                    "features": [
+                        {"type": "TEXT_DETECTION", "maxResults": 50},
+                        {"type": "DOCUMENT_TEXT_DETECTION", "maxResults": 50}
+                    ],
+                    "imageContext": {
+                        "languageHints": ["es", "en"]
+                    }
+                }]
+            }
+            
+            print("📡 [DEBUG] Enviando request a Google Vision...")
+            
+            # Hacer request
+            response = requests.post(url, json=request_body, timeout=45)
+            print(f"📡 [DEBUG] Google Vision status: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_text = response.text[:500] if response.text else "Sin detalles"
+                error_msg = f'Error Google Vision API (status {response.status_code}): {error_text}'
+                print(f"❌ [DEBUG] {error_msg}")
+                log_data['error_mensaje'] = error_msg
+                
+                error_response = jsonify({'success': False, 'error': f'Error Google Vision: {response.status_code}'})
+                error_response.headers.add('Access-Control-Allow-Origin', '*')
+                return error_response, 500
+            
+            result = response.json()
+            print(f"📄 [DEBUG] Google Vision response keys: {list(result.keys())}")
+            
+            if 'responses' in result and len(result['responses']) > 0:
+                response_data = result['responses'][0]
+                print(f"📄 [DEBUG] Response data keys: {list(response_data.keys())}")
+                
+                if 'error' in response_data:
+                    error_msg = f'Google Vision API error: {response_data["error"]}'
+                    print(f"❌ [DEBUG] {error_msg}")
+                    log_data['error_mensaje'] = error_msg
+                    
+                    error_response = jsonify({'success': False, 'error': error_msg})
+                    error_response.headers.add('Access-Control-Allow-Origin', '*')
+                    return error_response, 500
+                
+                # Extraer texto
+                full_text = ""
+                
+                if 'fullTextAnnotation' in response_data:
+                    full_text += response_data['fullTextAnnotation']['text'] + " "
+                    print("✅ [DEBUG] Texto de fullTextAnnotation extraído")
+                
+                if 'textAnnotations' in response_data and len(response_data['textAnnotations']) > 0:
+                    additional_text = response_data['textAnnotations'][0]['description']
+                    full_text += additional_text + " "
+                    print("✅ [DEBUG] Texto de textAnnotations extraído")
+                
+                full_text = ' '.join(full_text.split())
+                text_length = len(full_text)
+                print(f"📝 [DEBUG] Texto total extraído: {text_length} caracteres")
+                
+                if text_length == 0:
+                    error_msg = 'No se pudo extraer texto de la imagen'
+                    print(f"❌ [DEBUG] {error_msg}")
+                    log_data['error_mensaje'] = error_msg
+                    
+                    error_response = jsonify({'success': False, 'error': 'No se pudo leer texto. Intenta con mejor iluminación.'})
+                    error_response.headers.add('Access-Control-Allow-Origin', '*')
+                    return error_response, 400
+                
+            else:
+                error_msg = 'Respuesta vacía de Google Vision'
+                print(f"❌ [DEBUG] {error_msg}")
+                log_data['error_mensaje'] = error_msg
+                
+                error_response = jsonify({'success': False, 'error': 'No se pudo procesar la imagen'})
+                error_response.headers.add('Access-Control-Allow-Origin', '*')
+                return error_response, 500
+            
+        except requests.exceptions.Timeout:
+            error_msg = 'Timeout en Google Vision API (45s)'
+            print(f"❌ [DEBUG] {error_msg}")
+            log_data['error_mensaje'] = error_msg
+            
+            error_response = jsonify({'success': False, 'error': 'Timeout procesando imagen. Intenta de nuevo.'})
+            error_response.headers.add('Access-Control-Allow-Origin', '*')
+            return error_response, 500
+            
+        except Exception as e:
+            error_msg = f'Error en Google Vision API: {str(e)}'
+            print(f"❌ [DEBUG] {error_msg}")
+            print(f"❌ [DEBUG] Traceback: {traceback.format_exc()}")
+            log_data['error_mensaje'] = error_msg
+            
+            error_response = jsonify({'success': False, 'error': f'Error procesando imagen: {str(e)}'})
+            error_response.headers.add('Access-Control-Allow-Origin', '*')
+            return error_response, 500
+        
+        # PASO 6: Extraer datos de la imagen
+        print("🔍 [DEBUG] PASO 6: Extrayendo datos de la imagen...")
+        
+        extracted_data = extract_ine_data_advanced(full_text)
+        
+        # PASO 7: Preparar respuesta
+        print("🔍 [DEBUG] PASO 7: Preparando respuesta...")
+        
+        processing_time = time.time() - start_time
+        
+        # Actualizar log
+        log_data['exito'] = True
+        log_data['campos_detectados'] = list(extracted_data.keys())
+        log_data['texto_extraido'] = full_text[:1000]  # Truncar
+        log_data['confianza'] = 0.95
+        log_data['tiempo_procesamiento'] = processing_time
+        
+        # Guardar log en base de datos
+        try:
+            log_escaneo = LogEscaneo(**log_data)
             db.session.add(log_escaneo)
             db.session.commit()
+            print("✅ [DEBUG] Log guardado en base de datos")
         except Exception as e:
-            print(f"⚠️ Error guardando log: {e}")
+            print(f"⚠️ [DEBUG] Error guardando log: {e}")
         
         # Respuesta final
         response_data = {
@@ -477,7 +559,7 @@ def extract_ine_for_prd():
                 'calle': extracted_data.get('calle', 'NO DETECTADO'),
                 'colonia': extracted_data.get('colonia', 'NO DETECTADO'),
                 'codigo_postal': extracted_data.get('codigo_postal', 'NO DETECTADO'),
-                'metodo_usado': 'Railway MySQL v1.1 FIXED'
+                'metodo_usado': 'Railway MySQL v1.2 DEBUG'
             },
             'validaciones': {
                 'curp_valida': 'curp' in extracted_data,
@@ -486,12 +568,14 @@ def extract_ine_for_prd():
             },
             'debug_info': {
                 'campos_detectados': list(extracted_data.keys()),
-                'texto_length': len(vision_result['text']),
-                'processing_time': round(processing_time, 2)
+                'texto_length': len(full_text),
+                'processing_time': round(processing_time, 2),
+                'file_size_mb': round(file_size / 1024 / 1024, 2)
             }
         }
         
-        print(f"✅ Completado - {len(extracted_data)} campos en {processing_time:.2f}s")
+        print(f"✅ [DEBUG] PROCESAMIENTO COMPLETADO - {len(extracted_data)} campos en {processing_time:.2f}s")
+        print("="*50)
         
         response = jsonify(response_data)
         response.headers.add('Access-Control-Allow-Origin', '*')
@@ -501,19 +585,25 @@ def extract_ine_for_prd():
         return response
         
     except Exception as e:
-        print(f"💥 ERROR: {e}")
-        print(f"Traceback: {traceback.format_exc()}")
+        processing_time = time.time() - start_time
+        error_msg = f'Error general: {str(e)}'
+        
+        print(f"💥 [DEBUG] ERROR GENERAL: {error_msg}")
+        print(f"💥 [DEBUG] Traceback completo:")
+        print(traceback.format_exc())
+        print("="*50)
         
         # Guardar error en log
-        log_escaneo.exito = False
-        log_escaneo.error_mensaje = str(e)
-        log_escaneo.tiempo_procesamiento = time.time() - start_time
+        log_data['exito'] = False
+        log_data['error_mensaje'] = error_msg
+        log_data['tiempo_procesamiento'] = processing_time
         
         try:
+            log_escaneo = LogEscaneo(**log_data)
             db.session.add(log_escaneo)
             db.session.commit()
         except Exception as db_error:
-            print(f"Error guardando log: {db_error}")
+            print(f"⚠️ [DEBUG] Error guardando log de error: {db_error}")
         
         error_response = jsonify({'success': False, 'error': f'Error interno del servidor: {str(e)}'})
         error_response.headers.add('Access-Control-Allow-Origin', '*')
@@ -521,7 +611,7 @@ def extract_ine_for_prd():
 
 @app.route('/api/guardar-afiliacion', methods=['POST', 'OPTIONS'])
 def guardar_afiliacion():
-    """Guardar nueva afiliación en base de datos con mejor validación"""
+    """Guardar nueva afiliación en base de datos con debugging"""
     
     if request.method == 'OPTIONS':
         response = jsonify({'status': 'OK'})
@@ -530,76 +620,107 @@ def guardar_afiliacion():
         response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
         return response
     
+    print("="*50)
+    print("💾 [DEBUG] GUARDANDO NUEVA AFILIACIÓN")
+    print("="*50)
+    
     try:
         data = request.get_json()
         
         if not data:
+            print("❌ [DEBUG] No se recibieron datos JSON")
             return jsonify({'success': False, 'error': 'No se recibieron datos'}), 400
         
-        print(f"📋 Datos recibidos: {list(data.keys())}")
+        print(f"📋 [DEBUG] Datos recibidos - {len(data)} campos:")
+        for key, value in data.items():
+            if value and str(value).strip():
+                print(f"  ✅ {key}: '{value}'")
+            else:
+                print(f"  ❌ {key}: VACÍO/NULO")
         
         # Verificar campos obligatorios
         required_fields = ['nombres', 'primer_apellido', 'curp', 'clave_elector', 'email', 'telefono']
         missing_fields = []
         
         for field in required_fields:
-            if field not in data or not data[field] or data[field].strip() == '':
+            if field not in data or not data[field] or str(data[field]).strip() == '':
                 missing_fields.append(field)
         
         if missing_fields:
             error_msg = f'Campos obligatorios faltantes: {", ".join(missing_fields)}'
-            print(f"❌ {error_msg}")
+            print(f"❌ [DEBUG] {error_msg}")
             return jsonify({'success': False, 'error': error_msg}), 400
         
-        # Limpiar datos
-        curp_clean = data['curp'].strip().upper()
-        clave_elector_clean = data['clave_elector'].strip().upper()
+        print("✅ [DEBUG] Todos los campos obligatorios presentes")
         
-        # Verificar si ya existe CURP o Clave de Elector
+        # Limpiar datos
+        curp_clean = str(data['curp']).strip().upper()
+        clave_elector_clean = str(data['clave_elector']).strip().upper()
+        
+        print(f"🧹 [DEBUG] CURP limpia: {curp_clean}")
+        print(f"🧹 [DEBUG] Clave elector limpia: {clave_elector_clean}")
+        
+        # Verificar duplicados
+        print("🔍 [DEBUG] Verificando duplicados...")
+        
         existing_curp = Afiliacion.query.filter_by(curp=curp_clean).first()
         if existing_curp:
-            return jsonify({'success': False, 'error': f'Ya existe una afiliación con la CURP: {curp_clean}'}), 400
+            error_msg = f'Ya existe una afiliación con la CURP: {curp_clean}'
+            print(f"❌ [DEBUG] {error_msg}")
+            return jsonify({'success': False, 'error': error_msg}), 400
         
         existing_clave = Afiliacion.query.filter_by(clave_elector=clave_elector_clean).first()
         if existing_clave:
-            return jsonify({'success': False, 'error': f'Ya existe una afiliación con la Clave de Elector: {clave_elector_clean}'}), 400
+            error_msg = f'Ya existe una afiliación con la Clave de Elector: {clave_elector_clean}'
+            print(f"❌ [DEBUG] {error_msg}")
+            return jsonify({'success': False, 'error': error_msg}), 400
+        
+        print("✅ [DEBUG] No hay duplicados")
         
         # Generar folio único
         folio = Afiliacion.generar_folio()
+        print(f"🎫 [DEBUG] Folio generado: {folio}")
         
         # Crear nueva afiliación
+        print("📝 [DEBUG] Creando objeto Afiliacion...")
+        
         nueva_afiliacion = Afiliacion(
             folio=folio,
-            afiliador=data.get('afiliador', '').strip(),
-            nombres=data['nombres'].strip(),
-            primer_apellido=data['primer_apellido'].strip(),
-            segundo_apellido=data.get('segundo_apellido', '').strip(),
-            lugar_nacimiento=data.get('lugar_nacimiento', '').strip(),
+            afiliador=str(data.get('afiliador', '')).strip(),
+            nombres=str(data['nombres']).strip(),
+            primer_apellido=str(data['primer_apellido']).strip(),
+            segundo_apellido=str(data.get('segundo_apellido', '')).strip(),
+            lugar_nacimiento=str(data.get('lugar_nacimiento', '')).strip(),
             curp=curp_clean,
             clave_elector=clave_elector_clean,
-            email=data['email'].strip().lower(),
-            telefono=data['telefono'].strip(),
-            genero=data.get('genero', '').strip(),
-            llegada_prd=data.get('llegada_prd', '').strip(),
-            municipio=data.get('municipio', '').strip(),
-            colonia=data.get('colonia', '').strip(),
-            codigo_postal=data.get('codigo_postal', '').strip(),
-            calle=data.get('calle', '').strip(),
-            numero_exterior=data.get('numero_exterior', '').strip(),
-            numero_interior=data.get('numero_interior', '').strip(),
-            declaracion_veracidad=data.get('declaracion_veracidad', True),
-            declaracion_principios=data.get('declaracion_principios', True),
-            terminos_condiciones=data.get('terminos_condiciones', True),
-            metodo_captura=data.get('metodo_captura', 'manual'),
+            email=str(data['email']).strip().lower(),
+            telefono=str(data['telefono']).strip(),
+            genero=str(data.get('genero', '')).strip(),
+            llegada_prd=str(data.get('llegada_prd', '')).strip(),
+            municipio=str(data.get('municipio', '')).strip(),
+            colonia=str(data.get('colonia', '')).strip(),
+            codigo_postal=str(data.get('codigo_postal', '')).strip(),
+            calle=str(data.get('calle', '')).strip(),
+            numero_exterior=str(data.get('numero_exterior', '')).strip(),
+            numero_interior=str(data.get('numero_interior', '')).strip(),
+            declaracion_veracidad=bool(data.get('declaracion_veracidad', True)),
+            declaracion_principios=bool(data.get('declaracion_principios', True)),
+            terminos_condiciones=bool(data.get('terminos_condiciones', True)),
+            metodo_captura=str(data.get('metodo_captura', 'manual')),
             ip_registro=request.remote_addr,
             user_agent=request.headers.get('User-Agent', '')
         )
         
+        print("✅ [DEBUG] Objeto Afiliacion creado")
+        
         # Guardar en base de datos
+        print("💾 [DEBUG] Guardando en MySQL...")
+        
         db.session.add(nueva_afiliacion)
         db.session.commit()
         
-        print(f"✅ Nueva afiliación guardada: {folio}")
+        print(f"✅ [DEBUG] AFILIACIÓN GUARDADA EXITOSAMENTE: {folio}")
+        print("="*50)
         
         response_data = {
             'success': True,
@@ -614,10 +735,14 @@ def guardar_afiliacion():
         
     except Exception as e:
         db.session.rollback()
-        print(f"💥 ERROR guardando afiliación: {e}")
-        print(traceback.format_exc())
+        error_msg = f'Error guardando afiliación: {str(e)}'
         
-        error_response = jsonify({'success': False, 'error': f'Error guardando afiliación: {str(e)}'})
+        print(f"💥 [DEBUG] ERROR GUARDANDO: {error_msg}")
+        print(f"💥 [DEBUG] Traceback:")
+        print(traceback.format_exc())
+        print("="*50)
+        
+        error_response = jsonify({'success': False, 'error': error_msg})
         error_response.headers.add('Access-Control-Allow-Origin', '*')
         return error_response, 500
 
@@ -656,6 +781,6 @@ if __name__ == '__main__':
     # Crear tablas si no existen
     create_tables()
     
-    print("🚀 Iniciando sistema completo con MySQL FIXED...")
+    print("🚀 Iniciando sistema completo con MySQL y DEBUG completo...")
     print(f"🌐 Frontend + Backend + MySQL en puerto: {PORT}")
     app.run(debug=False, host=HOST, port=PORT)
