@@ -12,7 +12,7 @@
     <header class="header-container">
         <div class="page-wrapper header">
             <div class="logo">
-                <a href="/index.html"><img src="../assets/images/PRD.png" alt="PRD Logo"></a>
+                <a href="../index.html"><img src="../assets/images/PRD.png" alt="PRD Logo"></a>
             </div>
         </div>
     </header>
@@ -25,15 +25,15 @@
 
             <div class="folio-box">
                 <div class="folio-label">Tu folio de afiliación es:</div>
-                <div class="folio-number" id="folioNumber">PRD-2025-00438</div>
+                <div class="folio-number" id="folioNumber">PRD-2025-00001</div>
             </div>
 
             <p class="confirmation-text">
-                Hemos enviado un correo electrónico con los detalles de tu registro y tu comprobante de afiliación. Por favor, revísalo y guárdalo en un lugar seguro.
+                Hemos guardado tu registro en nuestra base de datos MySQL y enviado un correo electrónico con los detalles de tu afiliación. Por favor, revísalo y guárdalo en un lugar seguro.
             </p>
 
             <div class="action-buttons">
-                <a href="/index.html" class="primary-button">Volver al Inicio</a>
+                <a href="../index.html" class="primary-button">Volver al Inicio</a>
                 <a href="#" class="secondary-button" onclick="downloadVoucher()">Descargar Comprobante (PDF)</a>
             </div>
         </div>
@@ -44,9 +44,12 @@
     </footer>
 
     <script>
+        // CÓDIGO JAVASCRIPT COMPLETO PARA MYSQL - CONFIRMACIÓN
+
         // --- FUNCIÓN PLACEHOLDER PARA DESCARGA ---
         function downloadVoucher() {
-            alert('Función para descargar el comprobante en PDF estará disponible próximamente.');
+            const folio = localStorage.getItem('folioAfiliacion') || document.getElementById('folioNumber').textContent;
+            alert(`Función para descargar el comprobante en PDF estará disponible próximamente.\n\nFolio: ${folio}\n\n✅ Guardado en MySQL`);
         }
 
         // --- ANIMACIÓN DE CONFETI ---
@@ -61,6 +64,15 @@
                 confetti.style.left = Math.random() * 100 + 'vw';
                 confetti.style.animationDelay = Math.random() * 2 + 's';
                 confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Crear animación CSS dinámicamente
+                confetti.style.position = 'fixed';
+                confetti.style.top = '-10px';
+                confetti.style.width = '10px';
+                confetti.style.height = '10px';
+                confetti.style.zIndex = '9999';
+                confetti.style.animation = 'confetti-fall 4s linear forwards';
+                
                 container.appendChild(confetti);
 
                 setTimeout(() => {
@@ -68,10 +80,183 @@
                 }, 4000);
             }
         }
-        
-        // Iniciar la animación al cargar la página
+
+        // Agregar CSS de animación dinámicamente
+        function addConfettiStyles() {
+            if (document.getElementById('confetti-styles')) return;
+            
+            const style = document.createElement('style');
+            style.id = 'confetti-styles';
+            style.textContent = `
+                @keyframes confetti-fall {
+                    0% {
+                        transform: translateY(-100vh) rotate(0deg);
+                        opacity: 1;
+                    }
+                    100% {
+                        transform: translateY(100vh) rotate(720deg);
+                        opacity: 0;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Función para mostrar el folio correcto
+        function displayFolio() {
+            const folioElement = document.getElementById('folioNumber');
+            const folioFromStorage = localStorage.getItem('folioAfiliacion');
+            
+            if (folioFromStorage && folioElement) {
+                folioElement.textContent = folioFromStorage;
+                console.log('✅ Folio de MySQL mostrado:', folioFromStorage);
+                
+                // Verificar en la base de datos (opcional)
+                verifyAfiliacion(folioFromStorage);
+                
+            } else {
+                console.warn('⚠️ No se encontró folio en localStorage');
+                // Mantener el folio por defecto que está en el HTML
+            }
+            
+            // Limpiar el folio del localStorage después de mostrarlo
+            if (folioFromStorage) {
+                localStorage.removeItem('folioAfiliacion');
+            }
+        }
+
+        // Función para verificar la afiliación en la base de datos MySQL
+        function verifyAfiliacion(folio) {
+            fetch('/api/estadisticas')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('📊 Estadísticas actuales de MySQL:', data);
+                    
+                    // Mostrar mensaje de confirmación adicional
+                    if (data.total_afiliaciones > 0) {
+                        console.log(`✅ Base de datos MySQL funcionando - Total afiliaciones: ${data.total_afiliaciones}`);
+                        
+                        // Mostrar estadísticas adicionales en consola
+                        if (data.top_municipios && data.top_municipios.length > 0) {
+                            console.log('🏛️ Top municipios:', data.top_municipios);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.warn('⚠️ No se pudieron obtener estadísticas de MySQL:', error);
+                });
+        }
+
+        // Función para limpiar cualquier dato residual
+        function finalCleanup() {
+            // Lista completa de posibles datos en localStorage
+            const allPossibleKeys = [
+                'afiliador', 'nombres', 'primerApellido', 'segundoApellido', 
+                'lugarNacimiento', 'curp', 'claveElector', 'email', 'telefono',
+                'genero', 'llegadaPRD', 'municipio', 'colonia', 'codigoPostal',
+                'calle', 'numeroExterior', 'numeroInterior', 'metodo_captura',
+                'estado'
+            ];
+            
+            allPossibleKeys.forEach(key => {
+                if (localStorage.getItem(key)) {
+                    localStorage.removeItem(key);
+                    console.log(`🧹 Limpiado: ${key}`);
+                }
+            });
+        }
+
+        // Función para verificar el estado del sistema MySQL
+        function checkSystemHealth() {
+            fetch('/api/health')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('🏥 Estado del sistema MySQL:', data);
+                    
+                    if (data.database_status === 'OK') {
+                        console.log('✅ MySQL funcionando correctamente');
+                        console.log(`📊 Total afiliaciones en DB: ${data.total_afiliaciones}`);
+                        console.log(`🗄️ Base de datos: ${data.database_type}`);
+                        
+                        if (data.mysql_version) {
+                            console.log(`🔧 Versión MySQL: ${data.mysql_version}`);
+                        }
+                    } else {
+                        console.warn('⚠️ Problema con MySQL:', data.database_status);
+                    }
+                })
+                .catch(error => {
+                    console.warn('⚠️ No se pudo verificar el estado de MySQL:', error);
+                });
+        }
+
+        // Función para mostrar mensaje de éxito específico para MySQL
+        function showMySQLSuccessMessage() {
+            // Crear mensaje temporal
+            const message = document.createElement('div');
+            message.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #28a745;
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                font-weight: 600;
+                z-index: 10000;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                animation: slideIn 0.5s ease;
+            `;
+            message.innerHTML = '🗄️ ¡Guardado exitosamente en MySQL!';
+            
+            // Agregar animación CSS
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            document.body.appendChild(message);
+            
+            // Remover después de 3 segundos
+            setTimeout(() => {
+                message.remove();
+                style.remove();
+            }, 3000);
+        }
+
+        // Inicializar todo al cargar la página
         window.onload = function() {
+            // Verificar el estado del sistema MySQL
+            checkSystemHealth();
+            
+            // Mostrar el folio correcto
+            displayFolio();
+            
+            // Agregar estilos de confeti
+            addConfettiStyles();
+            
+            // Iniciar la animación de confeti
             createConfetti();
+            
+            // Mostrar mensaje de éxito específico para MySQL
+            setTimeout(showMySQLSuccessMessage, 1000);
+            
+            // Limpiar datos residuales después de un momento
+            setTimeout(finalCleanup, 3000);
+            
+            // Verificar si llegamos aquí correctamente
+            console.log('✅ Página de confirmación cargada');
+            console.log('🗄️ Afiliación guardada en MySQL Railway');
+            
+            // Opcional: Si no hay folio, podría significar que llegaron directamente a esta página
+            const folioElement = document.getElementById('folioNumber');
+            if (folioElement && folioElement.textContent === 'PRD-2025-00001') {
+                console.warn('⚠️ Mostrando folio por defecto - posible acceso directo a la página');
+            }
         };
     </script>
 </body>

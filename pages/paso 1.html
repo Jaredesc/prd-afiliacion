@@ -298,6 +298,8 @@
     <script src="../assets/js/main.js"></script>
 
     <script>
+        // CÓDIGO JAVASCRIPT COMPLETO PARA MYSQL
+
         // Objeto de validaciones (combinado)
         const validators = {
             validateName: (value) => {
@@ -519,35 +521,47 @@
             return isValid;
         }
 
-        // Función para el siguiente paso
+        // Función para el siguiente paso (ACTUALIZADA PARA MYSQL)
         function nextStep() {
             if (validateForm()) {
-                // Guardar todos los datos
-                const formData = {
-                    // Datos personales
-                    afiliador: document.getElementById('afiliador').value,
-                    nombres: document.getElementById('nombres').value,
-                    primerApellido: document.getElementById('primerApellido').value,
-                    segundoApellido: document.getElementById('segundoApellido').value,
-                    lugarNacimiento: document.getElementById('lugarNacimiento').value,
-                    curp: document.getElementById('curp').value,
-                    claveElector: document.getElementById('claveElector').value,
-                    email: document.getElementById('email').value,
-                    telefono: document.getElementById('telefono').value,
-                    gender: document.querySelector('input[name="gender"]:checked')?.value,
-                    llegadaPRD: document.getElementById('llegadaPRD').value,
-                    // Datos de domicilio
-                    estado: document.getElementById('estado').value,
-                    municipio: document.getElementById('municipio').value,
-                    colonia: document.getElementById('colonia').value,
-                    codigoPostal: document.getElementById('codigoPostal').value,
-                    calle: document.getElementById('calle').value,
-                    numeroExterior: document.getElementById('numeroExterior').value,
-                    numeroInterior: document.getElementById('numeroInterior').value
-                };
+                // Guardar todos los datos en localStorage
+                const formFields = [
+                    'afiliador', 'nombres', 'primerApellido', 'segundoApellido',
+                    'lugarNacimiento', 'curp', 'claveElector', 'email', 'telefono',
+                    'llegadaPRD', 'municipio', 'colonia', 'codigoPostal', 'calle',
+                    'numeroExterior', 'numeroInterior'
+                ];
                 
-                console.log('Datos completos del formulario:', formData);
-                alert('✅ Formularios válidos! Procediendo a términos y condiciones...');
+                formFields.forEach(fieldId => {
+                    const element = document.getElementById(fieldId);
+                    if (element) {
+                        localStorage.setItem(fieldId, element.value);
+                    }
+                });
+                
+                // Guardar género
+                const genderRadio = document.querySelector('input[name="gender"]:checked');
+                if (genderRadio) {
+                    localStorage.setItem('genero', genderRadio.value);
+                }
+                
+                // Guardar estado (siempre Zacatecas)
+                localStorage.setItem('estado', 'Zacatecas');
+                
+                console.log('✅ Datos guardados en localStorage para MySQL');
+                
+                // Mostrar datos guardados para debug
+                console.log('Datos guardados:', {
+                    afiliador: localStorage.getItem('afiliador'),
+                    nombres: localStorage.getItem('nombres'),
+                    primer_apellido: localStorage.getItem('primerApellido'),
+                    curp: localStorage.getItem('curp'),
+                    clave_elector: localStorage.getItem('claveElector'),
+                    email: localStorage.getItem('email'),
+                    municipio: localStorage.getItem('municipio')
+                });
+                
+                // Redireccionar al paso 2
                 window.location.href = "paso 2.html";
             } else {
                 alert('❌ Por favor corrige los errores marcados en el formulario.');
@@ -559,6 +573,115 @@
                     firstError.focus();
                 }
             }
+        }
+
+        // Función para el escaneo de INE (ACTUALIZADA PARA MYSQL)
+        function scanINE() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment'; // Usar cámara trasera en móviles
+            
+            input.onchange = function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                // Mostrar indicador de carga
+                const originalText = document.querySelector('.ine-btn').textContent;
+                document.querySelector('.ine-btn').textContent = '🔄 Procesando...';
+                document.querySelector('.ine-btn').disabled = true;
+                
+                // Crear FormData y enviar
+                const formData = new FormData();
+                formData.append('imagen', file);
+                
+                fetch('/api/extract-ine-prd', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Respuesta del escaneo MySQL:', data);
+                    
+                    if (data.success) {
+                        // Llenar automáticamente los campos con los datos detectados
+                        const datos = data.datos_prd;
+                        
+                        if (datos.curp !== 'NO DETECTADO') {
+                            document.getElementById('curp').value = datos.curp;
+                            validateField('curp', validators.validateCURP);
+                        }
+                        
+                        if (datos.clave_elector !== 'NO DETECTADO') {
+                            document.getElementById('claveElector').value = datos.clave_elector;
+                            validateField('claveElector', validators.validateClaveElector);
+                        }
+                        
+                        if (datos.nombres !== 'NO DETECTADO') {
+                            document.getElementById('nombres').value = datos.nombres;
+                            validateField('nombres', validators.validateName);
+                        }
+                        
+                        if (datos.primer_apellido !== 'NO DETECTADO') {
+                            document.getElementById('primerApellido').value = datos.primer_apellido;
+                            validateField('primerApellido', validators.validateName);
+                        }
+                        
+                        if (datos.segundo_apellido !== 'NO DETECTADO') {
+                            document.getElementById('segundoApellido').value = datos.segundo_apellido;
+                            validateField('segundoApellido', validators.validateName);
+                        }
+                        
+                        if (datos.municipio !== 'NO DETECTADO') {
+                            document.getElementById('municipio').value = datos.municipio;
+                        }
+                        
+                        if (datos.codigo_postal !== 'NO DETECTADO') {
+                            document.getElementById('codigoPostal').value = datos.codigo_postal;
+                        }
+                        
+                        if (datos.calle !== 'NO DETECTADO') {
+                            document.getElementById('calle').value = datos.calle;
+                        }
+                        
+                        if (datos.colonia !== 'NO DETECTADO') {
+                            document.getElementById('colonia').value = datos.colonia;
+                        }
+                        
+                        // Establecer género si se detectó
+                        if (datos.sexo !== 'NO DETECTADO') {
+                            const genderRadio = document.querySelector(`input[name="gender"][value="${datos.sexo}"]`);
+                            if (genderRadio) {
+                                genderRadio.checked = true;
+                            }
+                        }
+                        
+                        // Mostrar mensaje de éxito
+                        const detectedFields = Object.entries(datos)
+                            .filter(([key, value]) => value !== 'NO DETECTADO')
+                            .map(([key]) => key);
+                        
+                        alert(`✅ ¡Escaneo exitoso con MySQL!\n\nCampos detectados: ${detectedFields.length}\n\nRevisa y completa los campos faltantes.`);
+                        
+                        // Guardar método de captura
+                        localStorage.setItem('metodo_captura', 'ine_scan');
+                        
+                    } else {
+                        alert(`❌ Error en el escaneo: ${data.error}\n\nPor favor llena el formulario manualmente.`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('❌ Error de conexión con MySQL. Por favor llena el formulario manualmente.');
+                })
+                .finally(() => {
+                    // Restaurar botón
+                    document.querySelector('.ine-btn').textContent = originalText;
+                    document.querySelector('.ine-btn').disabled = false;
+                });
+            };
+            
+            input.click();
         }
 
         // Inicializar validaciones al cargar la página

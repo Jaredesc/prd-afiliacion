@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paso 3: Acuerdos - PRD Afiliación</title>
+    <title>Paso 2: Acuerdos - PRD Afiliación</title>
     
     <link rel="stylesheet" href="../assets/css/styles.css">
     
@@ -92,7 +92,6 @@
             <div class="progress-container">
                 <div class="progress-dots">
                     <div class="dot"></div>
-                    <div class="dot"></div>
                     <div class="dot active"></div>
                 </div>
             </div>
@@ -128,7 +127,7 @@
             </div>
             
             <div class="footer-nav">
-                <a href="paso 2.html" class="back-link">← Regresar</a>
+                <a href="paso 1.html" class="back-link">← Regresar</a>
                 <button id="finalizarBtn" class="next-button" onclick="nextStep()">Finalizar Afiliación 🚀</button>
             </div>
         </div>
@@ -141,6 +140,8 @@
     <script src="../assets/js/main.js"></script>
     
     <script>
+        // CÓDIGO JAVASCRIPT COMPLETO PARA MYSQL - PASO 2
+
         // --- VALIDACIÓN Y NAVEGACIÓN DEL FORMULARIO ---
         function nextStep() {
             const form = document.getElementById('agreementsForm');
@@ -174,24 +175,94 @@
             });
 
             if (allValid) {
-                // Guardar datos del paso 3
+                // Deshabilitar botón para evitar doble clic
+                const finalizarBtn = document.getElementById('finalizarBtn');
+                finalizarBtn.disabled = true;
+                finalizarBtn.textContent = 'Guardando en MySQL...';
+                
+                // Recopilar TODOS los datos del formulario del localStorage
                 const formData = {
-                    declaracionVeracidad: document.getElementById('declaracionVeracidad').checked,
-                    declaracionPrincipios: document.getElementById('declaracionPrincipios').checked,
-                    terminosCondiciones: document.getElementById('terminosCondiciones').checked,
+                    // Datos del paso 1 (obtenidos del localStorage)
+                    afiliador: localStorage.getItem('afiliador') || '',
+                    nombres: localStorage.getItem('nombres') || '',
+                    primer_apellido: localStorage.getItem('primerApellido') || '',
+                    segundo_apellido: localStorage.getItem('segundoApellido') || '',
+                    lugar_nacimiento: localStorage.getItem('lugarNacimiento') || '',
+                    curp: localStorage.getItem('curp') || '',
+                    clave_elector: localStorage.getItem('claveElector') || '',
+                    email: localStorage.getItem('email') || '',
+                    telefono: localStorage.getItem('telefono') || '',
+                    genero: localStorage.getItem('genero') || '',
+                    llegada_prd: localStorage.getItem('llegadaPRD') || '',
+                    municipio: localStorage.getItem('municipio') || '',
+                    colonia: localStorage.getItem('colonia') || '',
+                    codigo_postal: localStorage.getItem('codigoPostal') || '',
+                    calle: localStorage.getItem('calle') || '',
+                    numero_exterior: localStorage.getItem('numeroExterior') || '',
+                    numero_interior: localStorage.getItem('numeroInterior') || '',
+                    
+                    // Datos del paso 2 (acuerdos)
+                    declaracion_veracidad: document.getElementById('declaracionVeracidad').checked,
+                    declaracion_principios: document.getElementById('declaracionPrincipios').checked,
+                    terminos_condiciones: document.getElementById('terminosCondiciones').checked,
+                    
+                    // Metadatos
+                    metodo_captura: localStorage.getItem('metodo_captura') || 'manual',
                     timestamp: new Date().toISOString()
                 };
                 
-                console.log('Datos de acuerdos:', formData);
+                console.log('Enviando datos a MySQL:', formData);
                 
-                // Deshabilitar botón para evitar doble clic
-                document.getElementById('finalizarBtn').disabled = true;
-                document.getElementById('finalizarBtn').textContent = 'Procesando...';
+                // Verificar que tenemos los campos obligatorios
+                const requiredFields = ['nombres', 'primer_apellido', 'curp', 'clave_elector', 'email', 'telefono'];
+                const missingFields = requiredFields.filter(field => !formData[field]);
                 
-                // Redireccionar a confirmación
-                setTimeout(() => {
-                    window.location.href = "confirmacion.html";
-                }, 1000);
+                if (missingFields.length > 0) {
+                    alert(`❌ Faltan datos obligatorios: ${missingFields.join(', ')}\n\nRegresa al paso anterior.`);
+                    finalizarBtn.disabled = false;
+                    finalizarBtn.textContent = 'Finalizar Afiliación 🚀';
+                    return;
+                }
+                
+                // Enviar a la API de MySQL
+                fetch('/api/guardar-afiliacion', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('✅ Afiliación guardada en MySQL:', data);
+                        
+                        // Guardar el folio para mostrarlo en la página de confirmación
+                        localStorage.setItem('folioAfiliacion', data.folio);
+                        
+                        // Limpiar datos del localStorage (excepto el folio)
+                        clearLocalStorageData();
+                        
+                        // Redireccionar a confirmación
+                        window.location.href = "confirmacion.html";
+                    } else {
+                        console.error('❌ Error guardando en MySQL:', data.error);
+                        alert(`Error guardando en la base de datos: ${data.error}`);
+                        
+                        // Re-habilitar botón
+                        finalizarBtn.disabled = false;
+                        finalizarBtn.textContent = 'Finalizar Afiliación 🚀';
+                    }
+                })
+                .catch(error => {
+                    console.error('💥 Error de red con MySQL:', error);
+                    alert('Error de conexión con la base de datos MySQL. Por favor intenta de nuevo.');
+                    
+                    // Re-habilitar botón
+                    finalizarBtn.disabled = false;
+                    finalizarBtn.textContent = 'Finalizar Afiliación 🚀';
+                });
+                
             } else {
                 // Si hay errores, muestra una alerta
                 alert('Por favor, acepta todos los términos y declaraciones obligatorios para continuar.');
@@ -199,6 +270,20 @@
                     firstInvalidGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }
+        }
+
+        function clearLocalStorageData() {
+            // Limpiar todos los datos del formulario del localStorage (excepto folio)
+            const keys = [
+                'afiliador', 'nombres', 'primerApellido', 'segundoApellido', 
+                'lugarNacimiento', 'curp', 'claveElector', 'email', 'telefono',
+                'genero', 'llegadaPRD', 'municipio', 'colonia', 'codigoPostal',
+                'calle', 'numeroExterior', 'numeroInterior', 'metodo_captura'
+            ];
+            
+            keys.forEach(key => {
+                localStorage.removeItem(key);
+            });
         }
 
         // --- VALIDACIÓN EN TIEMPO REAL ---
@@ -218,6 +303,40 @@
                     }
                 });
             });
+            
+            // Debug: mostrar datos disponibles del localStorage
+            console.log('Datos disponibles del paso anterior para MySQL:', {
+                afiliador: localStorage.getItem('afiliador'),
+                nombres: localStorage.getItem('nombres'),
+                curp: localStorage.getItem('curp'),
+                email: localStorage.getItem('email'),
+                municipio: localStorage.getItem('municipio')
+            });
+        });
+
+        // Funcionalidad del menú lateral
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const menuBtn = document.getElementById('menuBtn');
+            
+            if (sidebar) sidebar.classList.toggle('active');
+            if (overlay) overlay.classList.toggle('active');
+            if (menuBtn) menuBtn.classList.toggle('active');
+        }
+
+        // Inicializar eventos del menú
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuBtn = document.getElementById('menuBtn');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            if (menuBtn) {
+                menuBtn.addEventListener('click', toggleSidebar);
+            }
+            
+            if (overlay) {
+                overlay.addEventListener('click', toggleSidebar);
+            }
         });
     </script>
 </body>

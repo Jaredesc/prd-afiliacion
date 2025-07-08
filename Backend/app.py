@@ -9,9 +9,17 @@ from datetime import datetime
 import os
 import time
 from dotenv import load_dotenv
+import traceback
+import pymysql
+
+# Configurar PyMySQL como driver MySQL
+pymysql.install_as_MySQLdb()
+
+# Importar modelos de base de datos
+from models import db, Afiliacion, LogEscaneo
 
 # ===============================================
-# CONFIGURACIÓN PARA RAILWAY - FRONTEND + BACKEND
+# CONFIGURACIÓN PARA RAILWAY - FRONTEND + BACKEND + MYSQL
 # ===============================================
 
 load_dotenv()
@@ -25,22 +33,85 @@ CORS(app, origins=['*'],
      methods=['GET', 'POST', 'OPTIONS'],
      supports_credentials=True)
 
+# ===============================================
+# CONFIGURACIÓN DE BASE DE DATOS MYSQL
+# ===============================================
+
 # Variables de entorno
+MYSQL_URL = os.getenv('MYSQL_URL')
+DATABASE_URL = os.getenv('DATABASE_URL')
 GOOGLE_API_KEY = os.getenv('GOOGLE_VISION_API_KEY')
 PORT = int(os.getenv('PORT', 5001))
 HOST = '0.0.0.0'
 
+# Configurar SQLAlchemy para MySQL
+if MYSQL_URL:
+    # Railway MySQL
+    app.config['SQLALCHEMY_DATABASE_URI'] = MYSQL_URL
+    print("✅ Configurando MySQL desde MYSQL_URL")
+elif DATABASE_URL:
+    # Railway MySQL (alternativo)
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+    print("✅ Configurando MySQL desde DATABASE_URL")
+else:
+    # Configuración manual con los datos de Railway
+    mysql_config = {
+        'host': 'maglev.proxy.rlwy.net',
+        'port': 26954,
+        'user': 'root',
+        'password': 'KdjBgzwzRqIRkMkWKdIpYPOUvTrIpKUD',
+        'database': 'railway'
+    }
+    
+    mysql_url = f"mysql://{mysql_config['user']}:{mysql_config['password']}@{mysql_config['host']}:{mysql_config['port']}/{mysql_config['database']}"
+    app.config['SQLALCHEMY_DATABASE_URI'] = mysql_url
+    print("✅ Configurando MySQL con credenciales manuales")
+
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,
+    'pool_recycle': 300,
+    'pool_timeout': 20,
+    'max_overflow': 0,
+    'echo': False  # Cambiar a True para debug SQL
+}
+
+# Inicializar base de datos
+db.init_app(app)
+
+# Verificaciones
 if not GOOGLE_API_KEY:
     print("⚠️  GOOGLE_VISION_API_KEY no configurada")
 else:
     print("✅ Google Vision API Key configurada")
 
 print("="*60)
-print("🚀 SISTEMA PRD ZACATECAS - COMPLETO v9.0")
+print("🚀 SISTEMA PRD ZACATECAS - MYSQL v1.0")
 print("📁 Backend: Backend/app.py")
 print("🌐 Frontend: Servido por Flask")
 print(f"🔑 API: {'✓' if GOOGLE_API_KEY else '✗'}")
+print("🗄️  DB: ✓ MySQL Railway")
 print("="*60)
+
+# ===============================================
+# CREAR TABLAS EN PRIMERA EJECUCIÓN
+# ===============================================
+
+def create_tables():
+    """Crear tablas si no existen"""
+    try:
+        with app.app_context():
+            db.create_all()
+            print("✅ Tablas de MySQL verificadas/creadas")
+            
+            # Verificar conexión
+            result = db.session.execute(db.text("SELECT 1")).fetchone()
+            if result:
+                print("✅ Conexión a MySQL exitosa")
+            
+    except Exception as e:
+        print(f"⚠️  Error con MySQL: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
 
 # ===============================================
 # RUTAS PARA SERVIR EL FRONTEND
@@ -198,12 +269,30 @@ def extract_ine_data_prd(text):
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check"""
+    try:
+        # Verificar conexión a base de datos
+        total_afiliaciones = Afiliacion.query.count()
+        db_status = 'OK'
+        
+        # Test de escritura/lectura
+        test_query = db.session.execute(db.text("SELECT VERSION()")).fetchone()
+        mysql_version = test_query[0] if test_query else 'Unknown'
+        
+    except Exception as e:
+        total_afiliaciones = 'Error'
+        db_status = f'Error: {str(e)}'
+        mysql_version = 'Error'
+    
     response_data = {
         'status': 'OK',
-        'service': 'PRD Zacatecas - Completo v9.0',
+        'service': 'PRD Zacatecas - MySQL v1.0',
         'backend': 'Backend/app.py',
         'frontend': 'Servido por Flask',
-        'api_configured': bool(GOOGLE_API_KEY)
+        'api_configured': bool(GOOGLE_API_KEY),
+        'database_status': db_status,
+        'database_type': 'MySQL',
+        'mysql_version': mysql_version,
+        'total_afiliaciones': total_afiliaciones
     }
     
     response = jsonify(response_data)
@@ -222,15 +311,33 @@ def extract_ine_for_prd():
         return response
     
     print("📸 Procesando escaneo INE...")
+    start_time = time.time()
+    user_ip = request.remote_addr
+    
+    # Crear log de escaneo
+    log_escaneo = LogEscaneo(
+        ip_usuario=user_ip,
+        fecha_escaneo=datetime.utcnow()
+    )
     
     try:
         if 'imagen' not in request.files:
+            log_escaneo.exito = False
+            log_escaneo.error_mensaje = 'No se recibió imagen'
+            db.session.add(log_escaneo)
+            db.session.commit()
+            
             error_response = jsonify({'success': False, 'error': 'No se recibió imagen'})
             error_response.headers.add('Access-Control-Allow-Origin', '*')
             return error_response, 400
 
         file = request.files['imagen']
         if file.filename == '':
+            log_escaneo.exito = False
+            log_escaneo.error_mensaje = 'Archivo vacío'
+            db.session.add(log_escaneo)
+            db.session.commit()
+            
             error_response = jsonify({'success': False, 'error': 'Archivo vacío'})
             error_response.headers.add('Access-Control-Allow-Origin', '*')
             return error_response, 400
@@ -245,6 +352,11 @@ def extract_ine_for_prd():
         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
         if image is None:
+            log_escaneo.exito = False
+            log_escaneo.error_mensaje = 'Imagen inválida'
+            db.session.add(log_escaneo)
+            db.session.commit()
+            
             error_response = jsonify({'success': False, 'error': 'Imagen inválida'})
             error_response.headers.add('Access-Control-Allow-Origin', '*')
             return error_response, 400
@@ -255,6 +367,11 @@ def extract_ine_for_prd():
         # Convertir a bytes
         success, enhanced_buffer = cv2.imencode('.png', enhanced_image)
         if not success:
+            log_escaneo.exito = False
+            log_escaneo.error_mensaje = 'Error procesando imagen'
+            db.session.add(log_escaneo)
+            db.session.commit()
+            
             error_response = jsonify({'success': False, 'error': 'Error procesando imagen'})
             error_response.headers.add('Access-Control-Allow-Origin', '*')
             return error_response, 500
@@ -269,6 +386,11 @@ def extract_ine_for_prd():
             vision_result = analyze_with_vision_api(image_data)
             
             if not vision_result['success']:
+                log_escaneo.exito = False
+                log_escaneo.error_mensaje = vision_result['error']
+                db.session.add(log_escaneo)
+                db.session.commit()
+                
                 error_response = jsonify({'success': False, 'error': vision_result['error']})
                 error_response.headers.add('Access-Control-Allow-Origin', '*')
                 return error_response, 500
@@ -277,6 +399,19 @@ def extract_ine_for_prd():
         
         # Extraer datos
         extracted_data = extract_ine_data_prd(vision_result['text'])
+        
+        # Calcular tiempo de procesamiento
+        processing_time = time.time() - start_time
+        
+        # Actualizar log de escaneo
+        log_escaneo.exito = True
+        log_escaneo.campos_detectados = list(extracted_data.keys())
+        log_escaneo.texto_extraido = vision_result['text'][:1000]  # Truncar para ahorrar espacio
+        log_escaneo.confianza = vision_result.get('confidence', 0.95)
+        log_escaneo.tiempo_procesamiento = processing_time
+        
+        db.session.add(log_escaneo)
+        db.session.commit()
         
         # Respuesta final
         response_data = {
@@ -292,7 +427,7 @@ def extract_ine_for_prd():
                 'calle': extracted_data.get('calle', 'NO DETECTADO'),
                 'colonia': extracted_data.get('colonia', 'NO DETECTADO'),
                 'codigo_postal': extracted_data.get('codigo_postal', 'NO DETECTADO'),
-                'metodo_usado': 'Railway Completo v9.0'
+                'metodo_usado': 'Railway MySQL v1.0'
             },
             'validaciones': {
                 'curp_valida': 'curp' in extracted_data,
@@ -301,11 +436,12 @@ def extract_ine_for_prd():
             },
             'debug_info': {
                 'campos_detectados': list(extracted_data.keys()),
-                'texto_length': len(vision_result['text'])
+                'texto_length': len(vision_result['text']),
+                'processing_time': round(processing_time, 2)
             }
         }
         
-        print(f"✅ Completado - {len(extracted_data)} campos")
+        print(f"✅ Completado - {len(extracted_data)} campos en {processing_time:.2f}s")
         
         response = jsonify(response_data)
         response.headers.add('Access-Control-Allow-Origin', '*')
@@ -316,11 +452,146 @@ def extract_ine_for_prd():
         
     except Exception as e:
         print(f"💥 ERROR: {e}")
+        
+        # Guardar error en log
+        log_escaneo.exito = False
+        log_escaneo.error_mensaje = str(e)
+        log_escaneo.tiempo_procesamiento = time.time() - start_time
+        
+        try:
+            db.session.add(log_escaneo)
+            db.session.commit()
+        except Exception as db_error:
+            print(f"Error guardando log: {db_error}")
+        
         error_response = jsonify({'success': False, 'error': f'Error interno: {str(e)}'})
         error_response.headers.add('Access-Control-Allow-Origin', '*')
         return error_response, 500
 
+@app.route('/api/guardar-afiliacion', methods=['POST', 'OPTIONS'])
+def guardar_afiliacion():
+    """Guardar nueva afiliación en base de datos"""
+    
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        return response
+    
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'error': 'No se recibieron datos'}), 400
+        
+        # Verificar campos obligatorios
+        required_fields = ['nombres', 'primer_apellido', 'curp', 'clave_elector', 'email', 'telefono']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({'success': False, 'error': f'Campo obligatorio faltante: {field}'}), 400
+        
+        # Verificar si ya existe CURP o Clave de Elector
+        existing_curp = Afiliacion.query.filter_by(curp=data['curp']).first()
+        if existing_curp:
+            return jsonify({'success': False, 'error': 'Ya existe una afiliación con esta CURP'}), 400
+        
+        existing_clave = Afiliacion.query.filter_by(clave_elector=data['clave_elector']).first()
+        if existing_clave:
+            return jsonify({'success': False, 'error': 'Ya existe una afiliación con esta Clave de Elector'}), 400
+        
+        # Generar folio único
+        folio = Afiliacion.generar_folio()
+        
+        # Crear nueva afiliación
+        nueva_afiliacion = Afiliacion(
+            folio=folio,
+            afiliador=data.get('afiliador', ''),
+            nombres=data['nombres'],
+            primer_apellido=data['primer_apellido'],
+            segundo_apellido=data.get('segundo_apellido', ''),
+            lugar_nacimiento=data.get('lugar_nacimiento', ''),
+            curp=data['curp'],
+            clave_elector=data['clave_elector'],
+            email=data['email'],
+            telefono=data['telefono'],
+            genero=data.get('genero', ''),
+            llegada_prd=data.get('llegada_prd', ''),
+            municipio=data.get('municipio', ''),
+            colonia=data.get('colonia', ''),
+            codigo_postal=data.get('codigo_postal', ''),
+            calle=data.get('calle', ''),
+            numero_exterior=data.get('numero_exterior', ''),
+            numero_interior=data.get('numero_interior', ''),
+            declaracion_veracidad=data.get('declaracion_veracidad', True),
+            declaracion_principios=data.get('declaracion_principios', True),
+            terminos_condiciones=data.get('terminos_condiciones', True),
+            metodo_captura=data.get('metodo_captura', 'manual'),
+            ip_registro=request.remote_addr,
+            user_agent=request.headers.get('User-Agent', '')
+        )
+        
+        # Guardar en base de datos
+        db.session.add(nueva_afiliacion)
+        db.session.commit()
+        
+        print(f"✅ Nueva afiliación guardada: {folio}")
+        
+        response_data = {
+            'success': True,
+            'folio': folio,
+            'id': nueva_afiliacion.id,
+            'mensaje': 'Afiliación guardada exitosamente'
+        }
+        
+        response = jsonify(response_data)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"💥 ERROR guardando afiliación: {e}")
+        print(traceback.format_exc())
+        
+        error_response = jsonify({'success': False, 'error': f'Error guardando afiliación: {str(e)}'})
+        error_response.headers.add('Access-Control-Allow-Origin', '*')
+        return error_response, 500
+
+@app.route('/api/estadisticas', methods=['GET'])
+def estadisticas():
+    """Obtener estadísticas básicas"""
+    try:
+        total_afiliaciones = Afiliacion.query.count()
+        afiliaciones_hoy = Afiliacion.query.filter(
+            Afiliacion.fecha_registro >= datetime.utcnow().date()
+        ).count()
+        
+        # Top municipios
+        from sqlalchemy import func
+        top_municipios = db.session.query(
+            Afiliacion.municipio,
+            func.count(Afiliacion.municipio).label('total')
+        ).group_by(Afiliacion.municipio).order_by(func.count(Afiliacion.municipio).desc()).limit(5).all()
+        
+        response_data = {
+            'total_afiliaciones': total_afiliaciones,
+            'afiliaciones_hoy': afiliaciones_hoy,
+            'top_municipios': [{'municipio': m[0], 'total': m[1]} for m in top_municipios]
+        }
+        
+        response = jsonify(response_data)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+        
+    except Exception as e:
+        error_response = jsonify({'success': False, 'error': str(e)})
+        error_response.headers.add('Access-Control-Allow-Origin', '*')
+        return error_response, 500
+
 if __name__ == '__main__':
-    print("🚀 Iniciando sistema completo...")
-    print(f"🌐 Frontend + Backend en puerto: {PORT}")
+    # Crear tablas si no existen
+    create_tables()
+    
+    print("🚀 Iniciando sistema completo con MySQL...")
+    print(f"🌐 Frontend + Backend + MySQL en puerto: {PORT}")
     app.run(debug=False, host=HOST, port=PORT)
