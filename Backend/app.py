@@ -784,3 +784,72 @@ if __name__ == '__main__':
     print("🚀 Iniciando sistema completo con MySQL y DEBUG completo...")
     print(f"🌐 Frontend + Backend + MySQL en puerto: {PORT}")
     app.run(debug=False, host=HOST, port=PORT)
+    
+@app.route('/api/test-google-vision', methods=['GET'])
+def test_google_vision():
+    """Probar Google Vision API con imagen simple"""
+    
+    print("🧪 [TEST] Probando Google Vision API...")
+    
+    try:
+        if not GOOGLE_API_KEY:
+            return jsonify({
+                'success': False, 
+                'error': 'API Key no configurada',
+                'details': 'GOOGLE_VISION_API_KEY no está en las variables de entorno'
+            })
+        
+        print(f"🔑 [TEST] API Key longitud: {len(GOOGLE_API_KEY)}")
+        print(f"🔑 [TEST] API Key primeros 10 chars: {GOOGLE_API_KEY[:10]}...")
+        
+        # Crear una imagen de prueba simple (1x1 pixel blanco)
+        import base64
+        
+        # Imagen PNG 1x1 blanca en base64
+        test_image_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+        
+        url = f"https://vision.googleapis.com/v1/images:annotate?key={GOOGLE_API_KEY}"
+        
+        request_body = {
+            "requests": [{
+                "image": {"content": test_image_b64},
+                "features": [{"type": "TEXT_DETECTION", "maxResults": 1}]
+            }]
+        }
+        
+        print("📡 [TEST] Enviando request de prueba...")
+        
+        response = requests.post(url, json=request_body, timeout=30)
+        
+        print(f"📡 [TEST] Status Code: {response.status_code}")
+        print(f"📡 [TEST] Response Headers: {dict(response.headers)}")
+        
+        if response.status_code == 200:
+            result = response.json()
+            print(f"✅ [TEST] API Key FUNCIONA - Response: {result}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Google Vision API funciona correctamente',
+                'api_key_valid': True,
+                'response': result
+            })
+        else:
+            error_text = response.text
+            print(f"❌ [TEST] API Key ERROR - Status: {response.status_code}")
+            print(f"❌ [TEST] Error Response: {error_text}")
+            
+            return jsonify({
+                'success': False,
+                'error': f'API Key inválida o expirada (Status: {response.status_code})',
+                'details': error_text,
+                'api_key_length': len(GOOGLE_API_KEY)
+            })
+            
+    except Exception as e:
+        print(f"💥 [TEST] Exception: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Error probando API: {str(e)}',
+            'details': traceback.format_exc()
+        })
